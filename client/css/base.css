@@ -1,0 +1,49 @@
+html {
+	background: url(/client/maplewood.jpg) no-repeat center center fixed;
+	-webkit-background-size: cover;
+	-moz-background-size: cover;
+	-o-background-size: cover;
+	background-size: cover;
+}
+
+body {
+	background-color: transparent;
+}
+
+h1,h3,h4,h5,p,a,label {
+	font-family: "Marmelad", "Verdana", sans-serif;
+}
+
+h2 {
+	font-family: "Marmelad", sans-serif;
+}
+
+a {
+	text-decoration: none;
+}
+
+form label {
+	vertical-align: middle;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+#body_content {
+	width: 70%;
+	margin: auto;
+}
+
+.navbar-inner a {
+	font-family: "Marmelad";
+}
+
+#body_content h2 {
+	font-size: 36pt;
+	color: #000000;
+	text-shadow: 2px 2px #ffffff;
+	text-align: center;
+	margin: 20px auto 0 auto;
+	width: 80%;
+}

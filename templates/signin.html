@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript" src="http://code.jquery.com/jquery.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/client/js/signin.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+		<link href='http://fonts.googleapis.com/css?family=Marmelad' rel='stylesheet' type='text/css'></link>
+		<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/signin.css"></link>
+		<title id="page_title">Sign-in | Chatrooms</title>
+	</head>
+	<body>
+		<div id="menu_bar" class="navbar navbar-static-top navbar-inverse">
+			<div class="navbar-inner">
+				<a id="chatroom_brand" class="brand" href="/">CHATROOM</a>
+				<ul class="nav">
+					<li id="rooms_menu" class="menu_item"><a href="/index">Rooms</a></li>
+					<li id="nickname_menu" class="menu_item"><a href="/signin">Create new nickname</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="body_content">
+			<h2>Welcome to Chatroom!</h2>
+			<div id="nickname_wrapper">
+				<form id="nickname_form" class="form-inline">
+					<label for="nickname">Please enter a nickname:</label>
+					<input id="nickname" type="text"/>
+					<input id="create_nickname" class="btn btn-primary" type="submit" value="Create"></input>
+				</form>
+			</div>
+		</div>
+	</body>
+</html>

@@ -1,0 +1,16 @@
+#nickname_form {
+	width: 60%;
+	margin: 40px auto;
+}
+
+form label {
+	font-weight: bold;
+	font-size: 14pt;
+	color: black;
+}
+
+#nickname_wrapper {
+	text-align: center;
+	margin: auto;
+	overflow: hidden;
+}

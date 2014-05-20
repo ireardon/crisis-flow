@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript" src="http://code.jquery.com/jquery.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/client/js/index.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+		<link href='http://fonts.googleapis.com/css?family=Marmelad' rel='stylesheet' type='text/css'></link>
+		<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/index.css"></link>
+		<title id="page_title">Rooms | Chatroom</title>
+	</head>
+	<body>
+		<div id="menu_bar" class="navbar navbar-static-top navbar-inverse">
+			<div class="navbar-inner">
+				<a id="chatroom_brand" class="brand" href="/">CHATROOM</a>
+				<ul class="nav">
+					<li id="rooms_menu" class="menu_item"><a href="/index">Rooms</a></li>
+					<li id="nickname_menu" class="menu_item"><a href="/signin">Create new nickname</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="body_content">
+			<h2>Rooms Index</h2>
+			<div id="new_room_box">
+				<div id="new_room_wrapper">
+					<form id="new_room_form" class="form-inline">
+						<label for="new_room_name">Enter a name for a new room:</label>
+						<input id="new_room_name" type="text"/>
+						<input id="create_new_room" class="btn btn-primary" type="submit" value="Create"></input>
+					</form>
+				</div>
+			</div>
+			<div id="rooms_list">
+				{{#room_temp}}
+					<div class="room" data_room_id="{{ room_id }}">
+						<a href="/rooms/{{ room_id }}">
+							<h4>{{ room_name }}</h4>
+							<p>Last post: {{ last_post_time }}</p>
+						</a>
+					</div>
+				{{/room_temp}}
+			</div>
+		</div>
+	</body>
+</html>

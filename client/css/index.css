@@ -1,0 +1,37 @@
+#new_room_form {
+	width: 65%;
+	margin: 40px auto;
+}
+
+form label {
+	font-weight: bold;
+	font-size: 14pt;
+	color: black;
+}
+
+#rooms_list {
+	width: 100%;
+	margin: auto;
+}
+
+#new_room_wrapper {
+	text-align: center;
+	margin: auto;
+	overflow: hidden;
+}
+
+.room {
+	display: inline-block;
+	background-color: rgba(255, 255, 255, 0.4);
+	-moz-box-shadow: 1px 1px 3px 3px #3D3D3D;
+	-webkit-box-shadow: 1px 1px 3px 3px #3D3D3D;
+	box-shadow: 1px 1px 3px 3px #3D3D3D;
+	padding: 10px;
+	text-align: center;
+	margin: 10px 10px;
+	width: 20%;
+}
+
+.room a {
+	color: black;
+}
