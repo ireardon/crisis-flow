@@ -44,7 +44,7 @@ app.configure(function() {
 });
 
 var io = require('socket.io').listen(server);
-var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser);
+var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser, COOKIE_SESSION_KEY);
 
 server.listen(8080, function() {
 	console.log("LISTENING on port 8080");
@@ -53,61 +53,6 @@ server.listen(8080, function() {
 /*###################################
   #            SOCKET IO            #
   ###################################*/
-
-/*
-io.configure(function() {
-	io.set('authorization', function(handshakeData, callback) {
-		console.log('>>>> Checking Socket.io authorization');
-		
-		if (!handshakeData.headers.cookie) {
-			return callback('Session cookie does not exist', false);
-		}
-		
-		console.log(handshakeData.headers.cookie);
-		console.log(typeof handshakeData.headers.cookie);
-		handshakeData.cookie = cookie.parseCookie(handshakeData.headers.cookie);
-		console.log(handshakeData.cookie);
-		console.log(Object.keys(handshakeData.cookie));
-		handshakeData.cookie = cookie.parseSignedCookie(handshakeData.cookie, COOKIE_SIGN_SECRET);
-		console.log(handshakeData.cookie);
-		console.log(Object.keys(handshakeData.cookie));
-		
-		handshakeData.session_id = handshakeData.cookie[COOKIE_SESSION_KEY];
-		
-		//var sess_id = connect.utils.parseSignedCookie(request_cookies[COOKIE_SESSION_KEY], COOKIE_SIGN_SECRET);
-		console.log(handshakeData.cookie[COOKIE_SESSION_KEY]);
-		console.log(handshakeData.session_id);
-		console.log(typeof handshakeData.cookie[COOKIE_SESSION_KEY]);
-		console.log(typeof handshakeData.session_id);
-		
-		if (!handshakeData.session_id) {
-			return callback('No session ID in cookie', false);
-		}
-		
-		sessionStore.get(handshakeData.session_id, function(error, session) {
-			if(error) {
-				return callback('Error in session store', false);
-			} else if(!session) {
-				return callback('Session cookie is invalid', false);
-			}
-			
-			handshakeData.session = session;
-			return callback(null, true);
-		});
-		
-		//
-		if (request_cookies[COOKIE_SESSION_KEY] === handshakeData.session_id) {
-			return callback('Session cookie is invalid', false);
-		}
-		
-		handshakeData.session_id = sess_id; // save session id for later access
-		console.log(handshakeData.session_id);
-		
-		callback(null, true);
-		//
-	});
-});
-*/
 
 sessionSockets.on('connection', function(error, socket, session) {
 	console.log('SOCKET connected');
@@ -212,11 +157,11 @@ app.get('/rooms/:roomID/messages.json', function(request, response) {
 });
 
 // post a message in the given room
-app.post('/rooms/:roomID/send_message', cookies.express(), function(request, response) {
+app.post('/rooms/:roomID/send_message', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
 	var roomID = request.params.roomID;
-	var nickname = request.cookies.get('nickname');
+	var nickname = request.session.nickname;
 	var message = request.body.message;
 	
 	var submitTime = dbops.createMessage(conn, roomID, nickname, message);
@@ -234,12 +179,12 @@ app.post('/create_room', function(request, response) {
 });
 
 // get the signin with given nickname
-app.get('/signin/:nickname', cookies.express(), function(request, response) {
+app.get('/signin/:nickname', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
 	var nickname = request.params.nickname;
 
-	request.cookies.set('nickname', nickname); // to create a new nickname, replace the old
+	request.session.nickname = nickname; // to create a new nickname, replace the old
 	
 	response.json(nickname);
 });
@@ -249,11 +194,11 @@ app.get('/signin/:nickname', cookies.express(), function(request, response) {
   ###################################*/
 
 // get the page for the given room
-app.get('/rooms/:roomID', cookies.express(), function(request, response) {
+app.get('/rooms/:roomID', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 
 	var roomID = request.params.roomID;
-	var nickname = request.cookies.get('nickname');
+	var nickname = request.session.nickname;
 	dbops.getRoomName(conn, roomID, function(roomName) {
 		dbops.getMessagesForRoom(conn, roomID, function(messagesList) {
 			response.render('room.html', {
@@ -278,18 +223,18 @@ app.get('/index', function(request, response) {
 });
 
 // get the signin page
-app.get('/signin', cookies.express(), function(request, response) {
+app.get('/signin', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
 	response.render('signin.html', {});
 });
 
 // get the signin page if no cookie, index otherwise
-app.get('/', cookies.express(), function(request, response) {
+app.get('/', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
-	var nickname = request.cookies.get('nickname'); // if we don't have a nickname, make one
-	if(nickname == undefined) {
+	var nickname = request.session.nickname; // if we don't have a nickname, make one
+	if(!nickname) {
 		response.render('signin.html', {});
 	} else { // else go to the rooms index
 		dbops.getAllRooms(conn, function(roomsList) {
