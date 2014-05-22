@@ -1,5 +1,10 @@
 // this module contains the functions for all database access
+var anyDB = require('any-db');
 var humanize = require('humanize');
+
+var settings = require('./settings');
+
+var conn = anyDB.createConnection(settings.ANYDB_CONNECT_ID);
 
 module.exports = {
 	'createRoom': createRoom,
@@ -15,7 +20,7 @@ module.exports = {
   #       INSERTION FUNCTIONS       #
   ###################################*/
 
-function createRoom(conn, roomName) {
+function createRoom(roomName) {
 	var roomID = generateRoomIdentifier();
 
 	var sql = 'INSERT INTO rooms(id, name) VALUES($1, $2);';
@@ -30,7 +35,7 @@ function createRoom(conn, roomName) {
 	return roomID;
 }
 
-function createMessage(conn, roomID, nickname, body) {
+function createMessage(roomID, nickname, body) {
 	var currTime = new Date().getTime() / 1000;
 	var sql = 'INSERT INTO messages(room, nickname, body, time) VALUES($1, $2, $3, $4);';
 	var q = conn.query(sql, [roomID, nickname, body, currTime]);
@@ -46,7 +51,7 @@ function createMessage(conn, roomID, nickname, body) {
   #       RETRIEVAL FUNCTIONS       #
   ###################################*/
 
-function getRoomName(conn, roomID, callback) {
+function getRoomName(roomID, callback) {
 	var roomName = 'Unnamed room';
 
 	var sql = 'SELECT name FROM rooms WHERE id = $1;';
@@ -62,7 +67,7 @@ function getRoomName(conn, roomID, callback) {
 	});
 }
 
-function getAllRooms(conn, callback) {
+function getAllRooms(callback) {
 	var roomsList = [];
 
 	var sql = 'SELECT id, name FROM rooms;';
@@ -77,11 +82,11 @@ function getAllRooms(conn, callback) {
 	
 	// call callback with result
 	q.on('end', function() {
-		getAllMostRecents(conn, roomsList, callback); // this only exists because
+		getAllMostRecents(roomsList, callback); // this only exists because
 	});
 }
 
-function getAllMostRecents(conn, roomsList, callback) {
+function getAllMostRecents(roomsList, callback) {
 	// javascript is a FUCKING STUPID language
 	
 	if (roomsList.length == 0) {
@@ -97,17 +102,17 @@ function getAllMostRecents(conn, roomsList, callback) {
 		
 		if(i < roomsList.length - 1) {
 			i++;
-			getMostRecentMessageTime(conn, roomsList[i]['room_id'], mostRecentCallback);
+			getMostRecentMessageTime(roomsList[i]['room_id'], mostRecentCallback);
 		} else {
 			if (validCallback(callback))
 				callback(roomsList);
 		}
 	};
 	
-	getMostRecentMessageTime(conn, roomsList[i]['room_id'], mostRecentCallback);
+	getMostRecentMessageTime(roomsList[i]['room_id'], mostRecentCallback);
 }
 
-function getMessagesForRoom(conn, roomID, callback) {
+function getMessagesForRoom(roomID, callback) {
 	var messagesList = [];
 
 	var sql = 'SELECT * FROM messages WHERE room=$1 ORDER BY time ASC';
@@ -130,7 +135,7 @@ function getMessagesForRoom(conn, roomID, callback) {
 	});
 }
 
-function getMostRecentMessageTime(conn, roomID, callback) {
+function getMostRecentMessageTime(roomID, callback) {
 	var sql = 'SELECT time FROM messages WHERE room=$1 ORDER BY time DESC LIMIT 1';
 	var q = conn.query(sql, [roomID]);
 	

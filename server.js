@@ -5,7 +5,6 @@
 var http = require('http');
 var connect = require('connect');
 var express = require('express');
-var anyDB = require('any-db');
 var engines = require('consolidate');
 var cookies = require('cookies');
 var cookie = require('cookie');
@@ -13,19 +12,16 @@ var passport = require('passport');
 var LocalStrategy = require('passport-local').Strategy;
 var SocketIOSessions = require('session.socket.io');
 
+var settings = require('./settings');
 var dbops = require('./database_ops');
 
 /*###################################
   #          CONFIGURATION          #
   ###################################*/
 
-var COOKIE_SIGN_SECRET = 'genericsecret';
-var COOKIE_SESSION_KEY = 'crisis_flow_session';
-
 var app = express();
-var conn = anyDB.createConnection('sqlite3://chatroom.db');
 
-var cookieParser = express.cookieParser(COOKIE_SIGN_SECRET);
+var cookieParser = express.cookieParser(settings.COOKIE_SIGN_SECRET);
 var sessionStore = new connect.session.MemoryStore();
 
 var server = http.createServer(app);
@@ -37,14 +33,14 @@ app.configure(function() {
 	
 	app.use(cookieParser);
 	app.use(express.session({
-		key: COOKIE_SESSION_KEY,
+		key: settings.COOKIE_SESSION_KEY,
 		store: sessionStore
 	}));
 	app.use(express.bodyParser()); // definitely use this feature
 });
 
 var io = require('socket.io').listen(server);
-var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser, COOKIE_SESSION_KEY);
+var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser, settings.COOKIE_SESSION_KEY);
 
 server.listen(8080, function() {
 	console.log("LISTENING on port 8080");
@@ -83,7 +79,7 @@ sessionSockets.on('connection', function(error, socket, session) {
 
 	// the client emits this when they want to send a message
 	socket.on('cts_message', function(message) {
-		var submitTime = dbops.createMessage(conn, socket.room, socket.nickname, message);
+		var submitTime = dbops.createMessage(socket.room, socket.nickname, message);
 		
 		socket.broadcast.to(socket.room).emit('stc_message', socket.nickname, message, submitTime); //emit to 'room' except this socket
 	});
@@ -150,7 +146,7 @@ app.get('/rooms/:roomID/messages.json', function(request, response) {
 	var roomID = request.params.roomID;
 
 	// fetch all of the messages for this room
-	dbops.getMessagesForRoom(conn, roomID, function(messagesList) {
+	dbops.getMessagesForRoom(roomID, function(messagesList) {
 		// encode the messages object as JSON and send it back
 		response.json(messagesList);
 	});
@@ -164,7 +160,7 @@ app.post('/rooms/:roomID/send_message', function(request, response) {
 	var nickname = request.session.nickname;
 	var message = request.body.message;
 	
-	var submitTime = dbops.createMessage(conn, roomID, nickname, message);
+	var submitTime = dbops.createMessage(roomID, nickname, message);
 	response.json(submitTime);
 });
 
@@ -173,7 +169,7 @@ app.post('/create_room', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
 	var roomName = request.body.room_name;
-	var roomID = dbops.createRoom(conn, roomName);
+	var roomID = dbops.createRoom(roomName);
 	
 	response.json(roomID);
 });
@@ -199,8 +195,8 @@ app.get('/rooms/:roomID', function(request, response) {
 
 	var roomID = request.params.roomID;
 	var nickname = request.session.nickname;
-	dbops.getRoomName(conn, roomID, function(roomName) {
-		dbops.getMessagesForRoom(conn, roomID, function(messagesList) {
+	dbops.getRoomName(roomID, function(roomName) {
+		dbops.getMessagesForRoom(roomID, function(messagesList) {
 			response.render('room.html', {
 				'room_id': roomID,
 				'room_name': roomName,
@@ -215,7 +211,7 @@ app.get('/rooms/:roomID', function(request, response) {
 app.get('/index', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 
-	dbops.getAllRooms(conn, function(roomsList) {
+	dbops.getAllRooms(function(roomsList) {
 		response.render('index.html', {
 			'room_temp': roomsList
 		});
@@ -237,7 +233,7 @@ app.get('/', function(request, response) {
 	if(!nickname) {
 		response.render('signin.html', {});
 	} else { // else go to the rooms index
-		dbops.getAllRooms(conn, function(roomsList) {
+		dbops.getAllRooms(function(roomsList) {
 			response.render('index.html', {
 				'room_temp': roomsList
 			});
