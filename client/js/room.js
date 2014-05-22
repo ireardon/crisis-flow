@@ -13,8 +13,15 @@ $(document).ready(function() {
 	
 	typing_interval_id = window.setInterval(checkTyping, TYPE_DELAY);
 	
-	$('#messages').scrollTop(99999); // there is no scroll bottom, but this should do
+	scrollMessagesBottom();
 
+	socket.on('error', function(message) { // message is an event object for some reason, not a string
+		console.log(message);
+		console.error('Error: Web socket disconnected: ' + message);
+		alert('Error: Web socket disconnected: ' + message);
+		window.location.href = '/';
+	});
+	
 	socket.on('membership_change', function(members) {
 		room_members = members;
 		$('#members').empty();
@@ -137,10 +144,7 @@ $(document).ready(function() {
 			'width': '200px'
 		}, { // options
 			'duration': 400,
-			'queue': false/*,
-			'done': function() {
-				return;
-			}*/
+			'queue': false
 		});
 	});
 	
@@ -155,10 +159,7 @@ $(document).ready(function() {
 		$this.stop().animate({ // properties
 			'width': '25px'
 		}, { // options
-			'duration': 400/*,
-			'done': function() {
-				return;
-			}*/
+			'duration': 400
 		});
 	});
 
@@ -187,7 +188,7 @@ function displayMessage(poster, text, time) {
 	var htmlString = '<div class="message" data-msg-time="' + time + '">';
 	htmlString += '<strong>' + poster + ':</strong> <p>' + text + '</p></div>';
 	$('#messages').append(htmlString);
-	$('#messages').scrollTop(99999); // there is no scroll bottom, but this should do
+	scrollMessagesBottom();
 	
 	while(displayed_messages > 500) { // if there are too many messages to display, start removing old messages
 		$('#messages .message').first().remove();
@@ -211,7 +212,7 @@ function addTypingNote(nickname) {
 	htmlString += '<p>' + nickname + ' is typing...</p></div>';
 	$('#messages').append(htmlString);
 	
-	$('#messages').scrollTop(99999); // there is no scroll bottom, but this should do
+	scrollMessagesBottom();
 }
 
 function removeTypingNote(nickname) {
@@ -220,7 +221,7 @@ function removeTypingNote(nickname) {
 		$(note_id).remove();
 		members_typing_flag[nickname] = false;
 		
-		$('#messages').scrollTop(99999); // there is no scroll bottom, but this should do
+		scrollMessagesBottom();
 	}
 }
 
@@ -238,4 +239,9 @@ function getMemberEntryHTML(nickname, idle) {
 	}
 	
 	return htmlString;
+}
+
+function scrollMessagesBottom() {
+	var $messages = $('#messages');
+	$messages.scrollTop($messages.height()); // there is no scroll bottom, but this should do
 }

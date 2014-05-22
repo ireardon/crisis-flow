@@ -1,20 +1,50 @@
+/*###################################
+  #            REQUIRES             #
+  ###################################*/
+
 var http = require('http');
+var connect = require('connect');
 var express = require('express');
-var app = express();
 var anyDB = require('any-db');
-var conn = anyDB.createConnection('sqlite3://chatroom.db');
-var dbops = require('./database_ops');
 var engines = require('consolidate');
 var cookies = require('cookies');
+var cookie = require('cookie');
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+var SocketIOSessions = require('session.socket.io');
+
+var dbops = require('./database_ops');
+
+/*###################################
+  #          CONFIGURATION          #
+  ###################################*/
+
+var COOKIE_SIGN_SECRET = 'genericsecret';
+var COOKIE_SESSION_KEY = 'crisis_flow_session';
+
+var app = express();
+var conn = anyDB.createConnection('sqlite3://chatroom.db');
+
+var cookieParser = express.cookieParser(COOKIE_SIGN_SECRET);
+var sessionStore = new connect.session.MemoryStore();
+
 var server = http.createServer(app);
 
+app.configure(function() {
+	app.engine('html', engines.hogan); // tell Express to run .html files through Hogan
+	app.set('views', __dirname + '/templates'); // tell Express where to find templates
+	app.use(express.static(__dirname));
+	
+	app.use(cookieParser);
+	app.use(express.session({
+		key: COOKIE_SESSION_KEY,
+		store: sessionStore
+	}));
+	app.use(express.bodyParser()); // definitely use this feature
+});
+
 var io = require('socket.io').listen(server);
-
-app.engine('html', engines.hogan); // tell Express to run .html files through Hogan
-app.set('views', __dirname + '/templates'); // tell Express where to find templates
-app.use(express.static(__dirname));
-
-app.use(express.bodyParser()); // definitely use this feature
+var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser);
 
 server.listen(8080, function() {
 	console.log("LISTENING on port 8080");
@@ -24,8 +54,72 @@ server.listen(8080, function() {
   #            SOCKET IO            #
   ###################################*/
 
-io.sockets.on('connection', function(socket) {
+/*
+io.configure(function() {
+	io.set('authorization', function(handshakeData, callback) {
+		console.log('>>>> Checking Socket.io authorization');
+		
+		if (!handshakeData.headers.cookie) {
+			return callback('Session cookie does not exist', false);
+		}
+		
+		console.log(handshakeData.headers.cookie);
+		console.log(typeof handshakeData.headers.cookie);
+		handshakeData.cookie = cookie.parseCookie(handshakeData.headers.cookie);
+		console.log(handshakeData.cookie);
+		console.log(Object.keys(handshakeData.cookie));
+		handshakeData.cookie = cookie.parseSignedCookie(handshakeData.cookie, COOKIE_SIGN_SECRET);
+		console.log(handshakeData.cookie);
+		console.log(Object.keys(handshakeData.cookie));
+		
+		handshakeData.session_id = handshakeData.cookie[COOKIE_SESSION_KEY];
+		
+		//var sess_id = connect.utils.parseSignedCookie(request_cookies[COOKIE_SESSION_KEY], COOKIE_SIGN_SECRET);
+		console.log(handshakeData.cookie[COOKIE_SESSION_KEY]);
+		console.log(handshakeData.session_id);
+		console.log(typeof handshakeData.cookie[COOKIE_SESSION_KEY]);
+		console.log(typeof handshakeData.session_id);
+		
+		if (!handshakeData.session_id) {
+			return callback('No session ID in cookie', false);
+		}
+		
+		sessionStore.get(handshakeData.session_id, function(error, session) {
+			if(error) {
+				return callback('Error in session store', false);
+			} else if(!session) {
+				return callback('Session cookie is invalid', false);
+			}
+			
+			handshakeData.session = session;
+			return callback(null, true);
+		});
+		
+		//
+		if (request_cookies[COOKIE_SESSION_KEY] === handshakeData.session_id) {
+			return callback('Session cookie is invalid', false);
+		}
+		
+		handshakeData.session_id = sess_id; // save session id for later access
+		console.log(handshakeData.session_id);
+		
+		callback(null, true);
+		//
+	});
+});
+*/
+
+sessionSockets.on('connection', function(error, socket, session) {
 	console.log('SOCKET connected');
+	console.log(error);
+	console.log(socket);
+	console.log(session);
+	
+	// check that this socket is associated with a valid session
+	if(!sessionValid(session)) {
+		socket.emit('error', "Session is invalid");
+		socket.disconnect();
+	}
 	
 	socket.on('join', function(roomID, nickname) {
 		socket.join(roomID);
@@ -210,6 +304,14 @@ app.get('/', cookies.express(), function(request, response) {
   #        SUPPORT FUNCTIONS        #
   ###################################*/
 
+function sessionValid(session) {
+	if(!session) {
+		return false;
+	}
+	
+	return true;
+}
+
 function broadcastMembership(socket) {
 	// fetch all sockets in a room
     var clients = io.sockets.clients(socket.room);
@@ -221,25 +323,4 @@ function broadcastMembership(socket) {
 	
 	socket.emit('membership_change', nicknames); // the socket that caused this wants the updated list too
 	socket.broadcast.to(socket.room).emit('membership_change', nicknames); // everybody else
-}
-
-function generateRoomIdentifier() {
-	// make a list of legal characters
-	// we're intentionally excluding 0, O, I, and 1 for readability
-	var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-
-	var result = '';
-	for (var i = 0; i < 6; i++)
-		result += chars.charAt(Math.floor(Math.random() * chars.length));
-
-	return result;
-}
-
-function sleep(millis, callback) {
-	setTimeout(function() {
-		if(callback)
-			callback();
-		else
-			return;
-	}, millis);
 }

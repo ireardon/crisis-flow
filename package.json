@@ -14,6 +14,9 @@
     "passport": "^0.2.0",
     "connect-flash": "^0.1.1",
     "passport-local": "^1.0.0",
-    "util": "^0.10.3"
+    "util": "^0.10.3",
+    "cookie": "^0.1.2",
+    "connect": "^2.17.1",
+    "session.socket.io": "^0.1.6"
   }
 }

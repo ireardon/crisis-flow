@@ -11,6 +11,10 @@ module.exports = {
 	'getMostRecentMessageTime': getMostRecentMessageTime
 };
 
+/*###################################
+  #       INSERTION FUNCTIONS       #
+  ###################################*/
+
 function createRoom(conn, roomName) {
 	var roomID = generateRoomIdentifier();
 
@@ -37,6 +41,10 @@ function createMessage(conn, roomID, nickname, body) {
 	
 	return currTime;
 }
+
+/*###################################
+  #       RETRIEVAL FUNCTIONS       #
+  ###################################*/
 
 function getRoomName(conn, roomID, callback) {
 	var roomName = 'Unnamed room';
@@ -144,6 +152,22 @@ function getMostRecentMessageTime(conn, roomID, callback) {
 	});
 }
 
+/*###################################
+  #        SUPPORT FUNCTIONS        #
+  ###################################*/
+
 function validCallback(callback) {
 	return callback && typeof(callback) === 'function';
+}
+
+function generateRoomIdentifier() {
+	// make a list of legal characters
+	// we're intentionally excluding 0, O, I, and 1 for readability
+	var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+	var result = '';
+	for (var i = 0; i < 6; i++)
+		result += chars.charAt(Math.floor(Math.random() * chars.length));
+
+	return result;
 }
