@@ -1,18 +1,19 @@
 -- SQLite has no support for enum types, so I'm buldin' my own
 CREATE TABLE utype (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
+	id INTEGER PRIMARY KEY,
 	name TEXT
 );
 
-INSERT INTO utype VALUES('admin');
-INSERT INTO utype VALUES('producer');
-INSERT INTO utype VALUES('consumer');
+INSERT INTO utype(name) VALUES('admin');
+INSERT INTO utype(name) VALUES('producer');
+INSERT INTO utype(name) VALUES('consumer');
 
 CREATE TABLE users (
-	id INTEGER PRIMARY KEY AUTOINCREMENT,
-	email TEXT,
+	id INTEGER PRIMARY KEY,
+	username TEXT,
 	password_hash TEXT,
-	utype FOREIGN KEY(utype) REFERENCES utype(id)
+	utype INT,
+	FOREIGN KEY(utype) REFERENCES utype(id)
 );
 
 CREATE TABLE rooms (
@@ -21,7 +22,7 @@ CREATE TABLE rooms (
 );
 
 CREATE TABLE messages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     room TEXT,
     nickname TEXT,
     body TEXT,

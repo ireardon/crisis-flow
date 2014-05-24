@@ -171,7 +171,7 @@ function generateRoomIdentifier() {
 	var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
 	var result = '';
-	for (var i = 0; i < 6; i++)
+	for (var i = 0; i < settings.ROOM_ID_LENGTH; i++)
 		result += chars.charAt(Math.floor(Math.random() * chars.length));
 
 	return result;

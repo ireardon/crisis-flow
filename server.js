@@ -9,6 +9,7 @@ var engines = require('consolidate');
 var cookies = require('cookies');
 var cookie = require('cookie');
 var passport = require('passport');
+var crypto = require('crypto');
 var LocalStrategy = require('passport-local').Strategy;
 var SocketIOSessions = require('session.socket.io');
 
@@ -41,6 +42,23 @@ app.configure(function() {
 
 var io = require('socket.io').listen(server);
 var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser, settings.COOKIE_SESSION_KEY);
+
+passport.use(new LocalStrategy(
+	function(username, password, done) {
+		User.findOne({ username: username }, function(err, user) {
+			if (err) {
+				return done(err);
+			}
+			if (!user) {
+				return done(null, false, { message: 'Incorrect username.' });
+			}
+			if (!user.validPassword(password)) {
+				return done(null, false, { message: 'Incorrect password.' });
+			}
+			return done(null, user);
+		});
+	}
+));
 
 server.listen(8080, function() {
 	console.log("LISTENING on port 8080");
@@ -174,15 +192,19 @@ app.post('/create_room', function(request, response) {
 	response.json(roomID);
 });
 
-// get the signin with given nickname
-app.get('/signin/:nickname', function(request, response) {
+// signin with given username and password
+app.post('/signin/', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
-	var nickname = request.params.nickname;
+	var username = request.body.username;
+	console.log(username);
 
-	request.session.nickname = nickname; // to create a new nickname, replace the old
+	var valid_password = verifyPasswordHash(username, request.body.client_salted_hash, request.body.client_salt, request.session.server_salt);
+	console.log(valid_password);
 	
-	response.json(nickname);
+	request.session.nickname = username; // to create a new nickname, replace the old
+	
+	response.json(username);
 });
 
 /*###################################
@@ -197,12 +219,13 @@ app.get('/rooms/:roomID', function(request, response) {
 	var nickname = request.session.nickname;
 	dbops.getRoomName(roomID, function(roomName) {
 		dbops.getMessagesForRoom(roomID, function(messagesList) {
-			response.render('room.html', {
+			var context = {
 				'room_id': roomID,
 				'room_name': roomName,
 				'nickname': nickname,
 				'message_temp': messagesList
-			});
+			};
+			response.render('room.html', context);
 		});
 	});
 });
@@ -212,9 +235,10 @@ app.get('/index', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 
 	dbops.getAllRooms(function(roomsList) {
-		response.render('index.html', {
+		var context = {
 			'room_temp': roomsList
-		});
+		};
+		response.render('index.html', context);
 	});
 });
 
@@ -222,7 +246,12 @@ app.get('/index', function(request, response) {
 app.get('/signin', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
-	response.render('signin.html', {});
+	request.session.server_salt = getSaltBits();
+	
+	var context = {
+		'server_salt': request.session.server_salt
+	};
+	response.render('signin.html', context);
 });
 
 // get the signin page if no cookie, index otherwise
@@ -231,13 +260,9 @@ app.get('/', function(request, response) {
 	
 	var nickname = request.session.nickname; // if we don't have a nickname, make one
 	if(!nickname) {
-		response.render('signin.html', {});
+		response.redirect('/signin');
 	} else { // else go to the rooms index
-		dbops.getAllRooms(function(roomsList) {
-			response.render('index.html', {
-				'room_temp': roomsList
-			});
-		});
+		response.redirect('/index');
 	}
 });
 
@@ -251,6 +276,25 @@ function sessionValid(session) {
 	}
 	
 	return true;
+}
+
+function verifyPasswordHash(username, client_salted_hash, client_salt, server_salt) {
+	// var password_hash = getPasswordHash(username);
+
+	var key = /* password_hash + */ client_salt + server_salt;
+	var server_salted_hash = crypto.createHash('sha256').update(key).digest('hex');
+	
+	return client_salted_hash === server_salted_hash;
+}
+
+function getSaltBits() {
+	var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+
+	var result = '';
+	for (var i = 0; i < settings.SALT_LENGTH; i++)
+		result += chars.charAt(Math.floor(Math.random() * chars.length));
+
+	return result;
 }
 
 function broadcastMembership(socket) {

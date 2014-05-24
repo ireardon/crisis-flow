@@ -4,11 +4,14 @@
 		<script type="text/javascript" src="http://code.jquery.com/jquery.js" charset="utf-8"></script>
 		<script type="text/javascript" src="/client/js/signin.js" charset="utf-8"></script>
 		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+		<script src="http://crypto-js.googlecode.com/svn/tags/3.1.2/build/rollups/sha256.js"></script>
 		<link href='http://fonts.googleapis.com/css?family=Marmelad' rel='stylesheet' type='text/css'></link>
 		<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/signin.css"></link>
 		<title id="page_title">Sign-in | Chatrooms</title>
+		
+		<meta name="server_salt" content="{{ server_salt }}"/>
 	</head>
 	<body>
 		<div id="menu_bar" class="navbar navbar-static-top navbar-inverse">
@@ -22,11 +25,11 @@
 		</div>
 		<div id="body_content">
 			<h2>Welcome to Chatroom!</h2>
-			<div id="nickname_wrapper">
-				<form id="nickname_form" class="form-inline">
-					<label for="nickname">Please enter a nickname:</label>
-					<input id="nickname" type="text"/>
-					<input id="create_nickname" class="btn btn-primary" type="submit" value="Create"></input>
+			<div id="signin_wrapper">
+				<form id="signin_form" class="form-inline">
+					<input id="username" type="text" placeholder="Username"/>
+					<input id="password" type="password" placeholder="Password"/>
+					<input id="submit_signin" class="btn btn-primary" type="submit" value="Sign in"></input>
 				</form>
 			</div>
 		</div>
