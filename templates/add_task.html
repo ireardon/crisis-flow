@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript" src="http://code.jquery.com/jquery.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/client/js/add_task.js" charset="utf-8"></script>
+		<link href='http://fonts.googleapis.com/css?family=Marmelad' rel='stylesheet' type='text/css'></link>
+		<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/room.css"></link>
+		<title id="page_title">Add directive | Chatroom</title>
+		
+		<meta name="room_id" content="{{ room_id }}"/>
+	</head>
+	<body>
+		<div id="menu_bar" class="navbar navbar-static-top navbar-inverse">
+			<div class="navbar-inner">
+				<a id="chatroom_brand" class="brand" href="/">CHATROOM</a>
+				<ul class="nav">
+					<li id="rooms_menu" class="menu_item"><a href="/index">Rooms</a></li>
+					<li id="signout_menu" class="menu_item"><a href="/signout">Sign out</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="body_content">
+			<h2>Add directive</h2>
+			<form id="add_task_form"  class="form">
+				<input id="task_title" type="text" placeholder="Title"/>
+				<textarea id="task_content" placeholder="Enter the contents of the directive here..."></textarea>
+				<button id="task_high_priority" type="button" class="btn btn-default">Mark as high priority</button>
+				<button id="submit_task" class="btn btn-primary" type="submit">Submit directive</button>
+			</form>
+		</div>
+	</body>
+</html>

@@ -188,6 +188,27 @@ app.post('/create_room', function(request, response) {
 	response.json(roomID);
 });
 
+// create a new task
+app.post('/add_task/:roomID', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
+	var author = request.session.user.username;
+	
+	var submitTime = dbops.createTask(request.params.roomID, author, request.body.title, 
+		false, JSON.parse(request.body.high_priority), request.body.content);
+	
+	var context = {
+		'success': true,
+		'submit_time': submitTime
+	};
+	response.json(context);
+});
+
 // signin with given username and password
 app.post('/signin', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
@@ -261,6 +282,21 @@ app.get('/rooms/:roomID', function(request, response) {
 			response.render('room.html', context);
 		});
 	});
+});
+
+// get the task adding page
+app.get('/add_task/:roomID', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+
+	if(!sessionValid(request.session)) {
+		response.redirect('/signin');
+		return;
+	}
+	
+	var context = {
+		'room_id': request.params.roomID
+	};
+	response.render('add_task.html', context);
 });
 
 // get the room index page

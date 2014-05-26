@@ -10,6 +10,7 @@ module.exports = {
 	'createUser': createUser,
 	'createRoom': createRoom,
 	'createMessage': createMessage,
+	'createTask': createTask,
 	'getUser': getUser,
 	'getRoomName': getRoomName,
 	'getAllRooms': getAllRooms,
@@ -50,13 +51,25 @@ function createRoom(roomName) {
 	return roomID;
 }
 
-function createMessage(roomID, nickname, body) {
+function createMessage(roomID, author, replyTo, content) {
 	var currTime = new Date().getTime() / 1000;
-	var sql = 'INSERT INTO messages(room, nickname, body, time) VALUES($1, $2, $3, $4);';
-	var q = conn.query(sql, [roomID, nickname, body, currTime]);
+	var sql = 'INSERT INTO messages(room, author, reply, content, time) VALUES($1, $2, $3, $4, $5);';
+	var q = conn.query(sql, [roomID, author, replyTo, content, currTime]);
 	
 	q.on('end', function() {
-		console.log('ADDED message in ' + roomID + ' from ' + nickname + ' to database');
+		console.log('ADDED message in ' + roomID + ' from ' + author + ' to database');
+	});
+	
+	return currTime;
+}
+
+function createTask(roomID, author, title, completed, high_priority, content) {
+	var currTime = new Date().getTime() / 1000;
+	var sql = 'INSERT INTO tasks(room, author, title, completed, high_priority, content, time) VALUES($1, $2, $3, $4, $5, $6, $7);';
+	var q = conn.query(sql, [roomID, author, title, Number(completed), Number(high_priority), content, currTime]);
+	
+	q.on('end', function() {
+		console.log('ADDED task in ' + roomID + ' from ' + author + ' to database');
 	});
 	
 	return currTime;
@@ -78,21 +91,6 @@ function getUser(username, callback) {
 	q.on('end', function() {
 		if (validCallback(callback))
 			callback(user);
-	});
-}
-
-function getPasswordHash(username, callback) {
-	var password_hash;
-
-	var sql = 'SELECT password_hash FROM users WHERE username = $1;';
-	var q = conn.query(sql, [username]);
-	q.on('row', function(row) {
-		password_hash = row.password_hash;
-	});
-	
-	q.on('end', function() {
-		if (validCallback(callback))
-			callback(password_hash);
 	});
 }
 
@@ -167,7 +165,7 @@ function getMessagesForRoom(roomID, callback) {
 		var messageData = {
 			'msg_id': row.id,
 			'msg_poster': row.nickname,
-			'msg_text': row.body,
+			'msg_text': row.content,
 			'msg_time': row.time
 		};
 		messagesList.push(messageData);

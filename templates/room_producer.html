@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<script type="text/javascript" src="http://code.jquery.com/jquery.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/client/js/room.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
+		<link href='http://fonts.googleapis.com/css?family=Marmelad' rel='stylesheet' type='text/css'></link>
+		<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/room.css"></link>
+		<title id="page_title">{{ room_name }} | Chatroom</title>
+		
+		<meta name="room_id" content="{{ room_id }}"/>
+		<meta name="nickname" content="{{ nickname }}"/>
+		
+		<script src="/socket.io/socket.io.js"></script>
+		<script type="text/javascript">
+			var socket = io.connect();
+		</script>
+	</head>
+	<body>
+		<div id="menu_bar" class="navbar navbar-static-top navbar-inverse">
+			<div class="navbar-inner">
+				<a id="chatroom_brand" class="brand" href="/">CHATROOM</a>
+				<ul class="nav">
+					<li id="rooms_menu" class="menu_item"><a href="/index">Rooms</a></li>
+					<li id="signout_menu" class="menu_item"><a href="/signout">Sign out</a></li>
+				</ul>
+			</div>
+		</div>
+		<div id="body_content">
+			<div id="messaging_content">
+				<h2>{{ room_name }}</h2>
+				<div id="messages">
+					{{#message_temp}}
+						<div class="message" data-msg-time="{{ msg_time }}">
+							<strong>{{ msg_poster }}:</strong>
+							<p>{{ msg_text }}</p>
+						</div>
+					{{/message_temp}}
+				</div>
+				<form id="add_message_form"  class="form-inline">
+					<input id="input_message" type="text" placeholder="Hi, {{ nickname }}! Say something…"/>
+					<input id="send_message" class="btn btn-primary" type="submit" value="Send"></input>
+				</form>
+			</div>
+			<div id="sidebar">
+				<div id="sidebar_content">
+					<h4>Chatters</h4>
+					<div id="members">
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>

@@ -23,8 +23,24 @@ CREATE TABLE rooms (
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY,
     room TEXT,
-    nickname TEXT,
-    body TEXT,
+    author TEXT,
+	reply INTEGER,
+    content TEXT,
     time INTEGER,
-	FOREIGN KEY(room) REFERENCES rooms(id)
+	FOREIGN KEY(room) REFERENCES rooms(id),
+	FOREIGN KEY(author) REFERENCES users(username),
+	FOREIGN KEY(reply) REFERENCES messages(id)
+);
+
+CREATE TABLE tasks (
+	id INTEGER PRIMARY KEY,
+	room TEXT,
+	author TEXT,
+	title TEXT,
+	completed BOOLEAN,
+	high_priority BOOLEAN,
+	content TEXT,
+	time INTEGER,
+	FOREIGN KEY(room) REFERENCES rooms(id),
+	FOREIGN KEY(author) REFERENCES users(username)
 );
