@@ -8,9 +8,7 @@ var express = require('express');
 var engines = require('consolidate');
 var cookies = require('cookies');
 var cookie = require('cookie');
-var passport = require('passport');
 var crypto = require('crypto');
-var LocalStrategy = require('passport-local').Strategy;
 var SocketIOSessions = require('session.socket.io');
 
 var settings = require('./settings');
@@ -42,23 +40,6 @@ app.configure(function() {
 
 var io = require('socket.io').listen(server);
 var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser, settings.COOKIE_SESSION_KEY);
-
-passport.use(new LocalStrategy(
-	function(username, password, done) {
-		User.findOne({ username: username }, function(err, user) {
-			if (err) {
-				return done(err);
-			}
-			if (!user) {
-				return done(null, false, { message: 'Incorrect username.' });
-			}
-			if (!user.validPassword(password)) {
-				return done(null, false, { message: 'Incorrect password.' });
-			}
-			return done(null, user);
-		});
-	}
-));
 
 server.listen(8080, function() {
 	console.log("LISTENING on port 8080");
@@ -160,6 +141,11 @@ sessionSockets.on('connection', function(error, socket, session) {
 // get updated json of the messages for a given room
 app.get('/rooms/:roomID/messages.json', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
+	
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
 
 	var roomID = request.params.roomID;
 
@@ -174,6 +160,11 @@ app.get('/rooms/:roomID/messages.json', function(request, response) {
 app.post('/rooms/:roomID/send_message', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
 	var roomID = request.params.roomID;
 	var nickname = request.session.nickname;
 	var message = request.body.message;
@@ -186,6 +177,11 @@ app.post('/rooms/:roomID/send_message', function(request, response) {
 app.post('/create_room', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
 	var roomName = request.body.room_name;
 	var roomID = dbops.createRoom(roomName);
 	
@@ -193,18 +189,50 @@ app.post('/create_room', function(request, response) {
 });
 
 // signin with given username and password
-app.post('/signin/', function(request, response) {
+app.post('/signin', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
 	var username = request.body.username;
 	console.log(username);
 
-	var valid_password = verifyPasswordHash(username, request.body.client_salted_hash, request.body.client_salt, request.session.server_salt);
-	console.log(valid_password);
+	dbops.getUser(username, function(user) {
+		if(!user) {
+			response.json({ 'error': 'No such user' });
+			return;
+		}
 	
-	request.session.nickname = username; // to create a new nickname, replace the old
+		request.session.user = user;
+		
+		var valid_password = verifyPasswordHash(user, request.body.client_salted_hash, request.body.client_salt, request.session.server_salt);
+		console.log(valid_password);
+		
+		if(valid_password) {
+			delete request.session.server_salt;
+			request.session.active = true;
+			
+			response.json({ 'success': true });
+		} else {
+			response.json({ 'error': 'Password is incorrect' });
+		}
+	});
+});
+
+app.post('/signup', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
 	
-	response.json(username);
+	var role_access = getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
+	console.log("Role access: " + role_access);
+	if(!role_access) {
+		response.json({ 'error': 'Access code is incorrect' });
+	}
+	
+	dbops.createUser(request.body.username, request.body.hashed_password, role_access, function(username) {
+		if(username !== request.body.username) {
+			response.json({ 'error': 'Username is already in use' });
+		} else {
+			response.json({ 'success': true });
+		}
+	});
 });
 
 /*###################################
@@ -215,6 +243,11 @@ app.post('/signin/', function(request, response) {
 app.get('/rooms/:roomID', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 
+	if(!sessionValid(request.session)) {
+		response.redirect('/signin');
+		return;
+	}
+	
 	var roomID = request.params.roomID;
 	var nickname = request.session.nickname;
 	dbops.getRoomName(roomID, function(roomName) {
@@ -234,12 +267,29 @@ app.get('/rooms/:roomID', function(request, response) {
 app.get('/index', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 
+	if(!sessionValid(request.session)) {
+		response.redirect('/signin');
+		return;
+	}
+	
 	dbops.getAllRooms(function(roomsList) {
 		var context = {
 			'room_temp': roomsList
 		};
 		response.render('index.html', context);
 	});
+});
+
+// get the signup page
+app.get('/signup', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+	
+	request.session.server_salt = getSaltBits();
+	
+	var context = {
+		'server_salt': request.session.server_salt
+	};
+	response.render('signup.html', context);
 });
 
 // get the signin page
@@ -254,12 +304,20 @@ app.get('/signin', function(request, response) {
 	response.render('signin.html', context);
 });
 
-// get the signin page if no cookie, index otherwise
+// mark session inactive and redirect to signin
+app.get('/signout', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+	
+	request.session.active = false;
+	
+	response.redirect('/signin');
+});
+
+// get the signin page if no active session, index otherwise
 app.get('/', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
-	var nickname = request.session.nickname; // if we don't have a nickname, make one
-	if(!nickname) {
+	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
 	} else { // else go to the rooms index
 		response.redirect('/index');
@@ -271,20 +329,36 @@ app.get('/', function(request, response) {
   ###################################*/
 
 function sessionValid(session) {
-	if(!session) {
+	if(!session || !session.active) {
 		return false;
 	}
 	
 	return true;
 }
 
-function verifyPasswordHash(username, client_salted_hash, client_salt, server_salt) {
-	// var password_hash = getPasswordHash(username);
-
-	var key = /* password_hash + */ client_salt + server_salt;
+function verifyPasswordHash(user, client_salted_hash, client_salt, server_salt) {
+	var key = user.password_hash + client_salt + server_salt;
 	var server_salted_hash = crypto.createHash('sha256').update(key).digest('hex');
 	
 	return client_salted_hash === server_salted_hash;
+}
+
+function getAccessRole(access_code_salted_hash, client_salt, server_salt) {
+	var access_roles = ['admin', 'producer', 'consumer'];
+	
+	console.log(access_code_salted_hash);
+	for(var i=0; i<access_roles.length; i++) {
+		var key = access_roles[i] + client_salt + server_salt;
+		var role_code_salted_hash = crypto.createHash('sha256').update(key).digest('hex');
+		console.log(i);
+		console.log(role_code_salted_hash);
+		
+		if(access_code_salted_hash === role_code_salted_hash) {
+			return i + 1;
+		}
+	}
+	
+	return 0;
 }
 
 function getSaltBits() {

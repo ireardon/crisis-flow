@@ -7,8 +7,10 @@ var settings = require('./settings');
 var conn = anyDB.createConnection(settings.ANYDB_CONNECT_ID);
 
 module.exports = {
+	'createUser': createUser,
 	'createRoom': createRoom,
 	'createMessage': createMessage,
+	'getUser': getUser,
 	'getRoomName': getRoomName,
 	'getAllRooms': getAllRooms,
 	'getAllMostRecents': getAllMostRecents,
@@ -20,6 +22,19 @@ module.exports = {
   #       INSERTION FUNCTIONS       #
   ###################################*/
 
+function createUser(username, password_hash, role) {
+	var sql = 'INSERT INTO users(username, password_hash, role) VALUES($1, $2, $3);';
+	var q = conn.query(sql, [username, password_hash, role]);
+	q.on('err', function(err) { // if this username is already in use, try again
+		return null;
+	});
+	q.on('end', function() {
+		console.log('ADDED user ' + username + ' to database');
+	});
+	
+	return username;
+}
+
 function createRoom(roomName) {
 	var roomID = generateRoomIdentifier();
 
@@ -28,7 +43,7 @@ function createRoom(roomName) {
 	q.on('err', function(err) { // if the room id is already in use, try again
 		roomID = createRoom(roomName);
 	});
-	q.on('end', function(){
+	q.on('end', function() {
 		console.log('ADDED room ' + roomID + ' to database');
 	});
 	
@@ -40,7 +55,7 @@ function createMessage(roomID, nickname, body) {
 	var sql = 'INSERT INTO messages(room, nickname, body, time) VALUES($1, $2, $3, $4);';
 	var q = conn.query(sql, [roomID, nickname, body, currTime]);
 	
-	q.on('end', function(){
+	q.on('end', function() {
 		console.log('ADDED message in ' + roomID + ' from ' + nickname + ' to database');
 	});
 	
@@ -50,6 +65,36 @@ function createMessage(roomID, nickname, body) {
 /*###################################
   #       RETRIEVAL FUNCTIONS       #
   ###################################*/
+
+function getUser(username, callback) {
+	var user;
+
+	var sql = 'SELECT * FROM users WHERE username = $1;';
+	var q = conn.query(sql, [username]);
+	q.on('row', function(row) {
+		user = row;
+	});
+	
+	q.on('end', function() {
+		if (validCallback(callback))
+			callback(user);
+	});
+}
+
+function getPasswordHash(username, callback) {
+	var password_hash;
+
+	var sql = 'SELECT password_hash FROM users WHERE username = $1;';
+	var q = conn.query(sql, [username]);
+	q.on('row', function(row) {
+		password_hash = row.password_hash;
+	});
+	
+	q.on('end', function() {
+		if (validCallback(callback))
+			callback(password_hash);
+	});
+}
 
 function getRoomName(roomID, callback) {
 	var roomName = 'Unnamed room';

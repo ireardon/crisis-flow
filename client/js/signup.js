@@ -7,26 +7,32 @@ $(document).ready(function() {
 	SALT_LENGTH = SERVER_SALT.length;
 	console.log(SALT_LENGTH);
 
-	$('#signin_form').submit(function(event) {
+	$('#signup_form').submit(function(event) {
 		event.preventDefault();
 		
 		var username_val = $('#username').val();
 		var password_val = $('#password').val();
+		var access_val = $('#access_code').val();
 		
 		console.log(password_val);
+		console.log(access_val);
 		
 		var client_salt = getSaltBits();
 		console.log(client_salt);
-		var hashed_password = hashPassword(password_val, client_salt, SERVER_SALT);
+		var hashed_password = CryptoJS.SHA256(password_val).toString(CryptoJS.enc.Hex);
 		console.log(hashed_password);
+		
+		var hashed_access_code = hashAccessCode(access_val, client_salt, SERVER_SALT);
+		console.log(hashed_access_code);
 		
 		var post_data = {
 			'username': username_val,
 			'client_salt': client_salt,
-			'client_salted_hash': hashed_password
+			'hashed_password': hashed_password,
+			'access_code_salted_hash': hashed_access_code
 		};
 		
-		$.post('/signin', post_data, function(response) {
+		$.post('/signup', post_data, function(response) {
 			console.log(response);
 			if(response.error) {
 				alert(response.error);
@@ -39,9 +45,8 @@ $(document).ready(function() {
 	});
 });
 
-function hashPassword(raw_password, client_salt, server_salt) {
-	var hashed_password = CryptoJS.SHA256(raw_password);
-	var key = hashed_password + client_salt + server_salt;
+function hashAccessCode(access_code, client_salt, server_salt) {
+	var key = access_code + client_salt + server_salt;
 	
 	return CryptoJS.SHA256(key).toString(CryptoJS.enc.Hex);
 }
