@@ -10,12 +10,8 @@ body {
 	background-color: transparent;
 }
 
-h1,h3,h4,h5,p,a,label {
+h1,h2,h3,h4,h5,p,a,label {
 	font-family: "Marmelad", "Verdana", sans-serif;
-}
-
-h2 {
-	font-family: "Marmelad", sans-serif;
 }
 
 a {
@@ -31,12 +27,7 @@ a:hover {
 }
 
 #body_content {
-	width: 70%;
 	margin: auto;
-}
-
-.navbar-inner a {
-	font-family: "Marmelad";
 }
 
 #body_content h2 {

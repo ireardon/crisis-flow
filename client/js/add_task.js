@@ -26,13 +26,13 @@ $(document).ready(function() {
 		var priority_val = $('#task_high_priority').data('high-prio');
 		console.log(priority_val);
 		
-		var post_data = {
+		var task_data = {
 			'title': title_val,
 			'content': content_val,
 			'high_priority': priority_val
 		};
 		
-		$.post('/add_task/' + room_id, post_data, function(response) {
+		$.post('/add_task/' + room_id, task_data, function(response) {
 			console.log(response);
 			if(response.error) {
 				alert(response.error);

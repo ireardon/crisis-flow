@@ -16,6 +16,7 @@ module.exports = {
 	'getAllRooms': getAllRooms,
 	'getAllMostRecents': getAllMostRecents,
 	'getMessagesForRoom': getMessagesForRoom,
+	'getTasksForRoom': getTasksForRoom,
 	'getMostRecentMessageTime': getMostRecentMessageTime
 };
 
@@ -37,39 +38,44 @@ function createUser(username, password_hash, role) {
 }
 
 function createRoom(roomName) {
-	var roomID = generateRoomIdentifier();
+	var room_id = generateroom_identifier();
 
 	var sql = 'INSERT INTO rooms(id, name) VALUES($1, $2);';
-	var q = conn.query(sql, [roomID, roomName]);
+	var q = conn.query(sql, [room_id, roomName]);
 	q.on('err', function(err) { // if the room id is already in use, try again
-		roomID = createRoom(roomName);
+		room_id = createRoom(roomName);
 	});
 	q.on('end', function() {
-		console.log('ADDED room ' + roomID + ' to database');
+		console.log('ADDED room ' + room_id + ' to database');
 	});
 	
-	return roomID;
+	return room_id;
 }
 
-function createMessage(roomID, author, replyTo, content) {
+function createMessage(room_id, author, replyTo, content) {
 	var currTime = new Date().getTime() / 1000;
+	
+	if(!replyTo) { // to indicate that this is a top-level message, we use a negative number
+		replyTo = -1;
+	}
+	
 	var sql = 'INSERT INTO messages(room, author, reply, content, time) VALUES($1, $2, $3, $4, $5);';
-	var q = conn.query(sql, [roomID, author, replyTo, content, currTime]);
+	var q = conn.query(sql, [room_id, author, replyTo, content, currTime]);
 	
 	q.on('end', function() {
-		console.log('ADDED message in ' + roomID + ' from ' + author + ' to database');
+		console.log('ADDED message in ' + room_id + ' from ' + author + ' to database');
 	});
 	
 	return currTime;
 }
 
-function createTask(roomID, author, title, completed, high_priority, content) {
+function createTask(room_id, author, title, completed, high_priority, content) {
 	var currTime = new Date().getTime() / 1000;
 	var sql = 'INSERT INTO tasks(room, author, title, completed, high_priority, content, time) VALUES($1, $2, $3, $4, $5, $6, $7);';
-	var q = conn.query(sql, [roomID, author, title, Number(completed), Number(high_priority), content, currTime]);
+	var q = conn.query(sql, [room_id, author, title, Number(completed), Number(high_priority), content, currTime]);
 	
 	q.on('end', function() {
-		console.log('ADDED task in ' + roomID + ' from ' + author + ' to database');
+		console.log('ADDED task in ' + room_id + ' from ' + author + ' to database');
 	});
 	
 	return currTime;
@@ -94,11 +100,11 @@ function getUser(username, callback) {
 	});
 }
 
-function getRoomName(roomID, callback) {
+function getRoomName(room_id, callback) {
 	var roomName = 'Unnamed room';
 
 	var sql = 'SELECT name FROM rooms WHERE id = $1;';
-	var q = conn.query(sql, [roomID]);
+	var q = conn.query(sql, [room_id]);
 	q.on('row', function(row) {
 		roomName = row.name;
 	});
@@ -155,32 +161,57 @@ function getAllMostRecents(roomsList, callback) {
 	getMostRecentMessageTime(roomsList[i]['room_id'], mostRecentCallback);
 }
 
-function getMessagesForRoom(roomID, callback) {
-	var messagesList = [];
+function getMessagesForRoom(room_id, limit, callback) {
+	var messages_list = [];
+	var msg_ids_list = [];
 
-	var sql = 'SELECT * FROM messages WHERE room=$1 ORDER BY time ASC';
-	var q = conn.query(sql, [roomID]);
+	var sql, q;
+	if(limit) {
+		sql = 'SELECT * FROM messages WHERE room=$1 AND reply < 0 ORDER BY time ASC LIMIT $2';
+		q = conn.query(sql, [room_id, limit]);
+	} else {
+		sql = 'SELECT * FROM messages WHERE room=$1 AND reply < 0 ORDER BY time ASC';
+		q = conn.query(sql, [room_id]);
+	}
+	
 	q.on('row', function(row){
-		
-		var messageData = {
-			'msg_id': row.id,
-			'msg_poster': row.nickname,
-			'msg_text': row.content,
-			'msg_time': row.time
-		};
-		messagesList.push(messageData);
+		messages_list.push(row);
+		msg_ids_list.push(row.id);
 	});
 	
 	// call callback with result
 	q.on('end', function() {
-		if (validCallback(callback))
-			callback(messagesList);
+		if(msg_ids_list.length === 0) { // no replies are possible
+			if (validCallback(callback))
+				callback(messages_list);
+		} else { // we need to gather replies to the top-level messages we've collected
+			getReplies(messages_list, msg_ids_list, function() {
+				if (validCallback(callback))
+					callback(messages_list);
+			});
+		}
 	});
 }
 
-function getMostRecentMessageTime(roomID, callback) {
+function getTasksForRoom(room_id, callback) {
+	var tasks_list = [];
+
+	var sql = 'SELECT * FROM tasks WHERE room=$1 AND completed = 0 ORDER BY time DESC';
+	var q = conn.query(sql, [room_id]);
+	
+	q.on('row', function(row) {
+		tasks_list.push(row);
+	});
+	
+	q.on('end', function(result) {
+		if (validCallback(callback))
+			callback(tasks_list);
+	});
+}
+
+function getMostRecentMessageTime(room_id, callback) {
 	var sql = 'SELECT time FROM messages WHERE room=$1 ORDER BY time DESC LIMIT 1';
-	var q = conn.query(sql, [roomID]);
+	var q = conn.query(sql, [room_id]);
 	
 	var mostRecent;
 	
@@ -189,7 +220,7 @@ function getMostRecentMessageTime(roomID, callback) {
 	});
 	
 	// call callback with result
-	q.on('end', function(result) {
+	q.on('end', function() {
 		if(mostRecent)
 			mostRecent = humanize.relativeTime(mostRecent);
 		else
@@ -197,6 +228,37 @@ function getMostRecentMessageTime(roomID, callback) {
 		
 		if (validCallback(callback))
 			callback(mostRecent);
+	});
+}
+
+function getReplies(aggregated_messages_list, ids_list, callback) {
+	var replies_list = [];
+	var replies_ids_list = [];
+	var sql = 'SELECT * FROM messages WHERE reply IN (';
+	for(var i=0; i<ids_list.length; i++) {
+		if(i === ids_list.length-1) {
+			sql += '$' + (i+1);
+		} else {
+			sql += '$' + (i+1) + ', ';
+		}
+	}
+	sql += ') ORDER BY time ASC';
+	console.log(sql);
+	var q = conn.query(sql, ids_list);
+	
+	q.on('row', function(row) {
+		replies_list.push(row);
+		replies_ids_list.push(row.id);
+	});
+
+	q.on('end', function() {
+		if(replies_list.length === 0) { // replies list is empty so we can proceed with the callback
+			if (validCallback(callback))
+				callback();
+		} else { // replies list has entries, which may themselves have replies
+			aggregated_messages_list.concat(replies_list);
+			getReplies(aggregated_messages_list, replies_ids_list, callback);
+		}
 	});
 }
 
@@ -208,7 +270,7 @@ function validCallback(callback) {
 	return callback && typeof(callback) === 'function';
 }
 
-function generateRoomIdentifier() {
+function generateroom_identifier() {
 	// make a list of legal characters
 	// we're intentionally excluding 0, O, I, and 1 for readability
 	var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

@@ -3,16 +3,18 @@
 	<head>
 		<script type="text/javascript" src="http://code.jquery.com/jquery.min.js" charset="utf-8"></script>
 		<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js" charset="utf-8"></script>
-		<script type="text/javascript" src="/client/js/room.js" charset="utf-8"></script>
+		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.6.0/moment.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/client/js/room_producer.js" charset="utf-8"></script>
 		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
 		<link href='http://fonts.googleapis.com/css?family=Marmelad' rel='stylesheet' type='text/css'></link>
 		<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/room.css"></link>
+		<link rel="stylesheet" type="text/css" href="/client/css/room_producer.css"></link>
 		<title id="page_title">{{ room_name }} | Chatroom</title>
 		
 		<meta name="room_id" content="{{ room_id }}"/>
-		<meta name="nickname" content="{{ nickname }}"/>
+		<meta name="username" content="{{ username }}"/>
 		
 		<script src="/socket.io/socket.io.js"></script>
 		<script type="text/javascript">
@@ -30,18 +32,30 @@
 			</div>
 		</div>
 		<div id="body_content">
+			<h2>{{ room_name }}</h2>
+			<div id="task_content">
+				<div id="tasks">
+					<div id="task_wrapper">
+						{{#task_list}}
+							<div class="task" data-task-time="{{ time }}" data-task-high-priority="{{ high_priority }}" data-task-content="{{ content }}">
+								<strong class="task_title">{{ title }}</strong>
+								<p class="task_author">Submitted by {{ author }} (<span class="task_timeago"></span>)</p>
+							</div>
+						{{/task_list}}
+					</div>
+				</div>
+			</div>
 			<div id="messaging_content">
-				<h2>{{ room_name }}</h2>
 				<div id="messages">
-					{{#message_temp}}
-						<div class="message" data-msg-time="{{ msg_time }}">
-							<strong>{{ msg_poster }}:</strong>
-							<p>{{ msg_text }}</p>
+					{{#message_list}}
+						<div class="message" data-msg-time="{{ time }}">
+							<strong>{{ author }}:</strong>
+							<p>{{ content }}</p>
 						</div>
-					{{/message_temp}}
+					{{/message_list}}
 				</div>
 				<form id="add_message_form"  class="form-inline">
-					<input id="input_message" type="text" placeholder="Hi, {{ nickname }}! Say something…"/>
+					<input id="input_message" type="text" placeholder="Hi, {{ username }}! Say something…" data-reply-to="" data-whisper-to=""/>
 					<input id="send_message" class="btn btn-primary" type="submit" value="Send"></input>
 				</form>
 			</div>

@@ -1,3 +1,20 @@
+#tasks {
+	background-color: rgba(255, 255, 255, 0.4);
+	-moz-box-shadow: 1px 1px 3px 3px #3D3D3D;
+	-webkit-box-shadow: 1px 1px 3px 3px #3D3D3D;
+	box-shadow: 1px 1px 3px 3px #3D3D3D;
+	padding: 10px;
+	margin: 20px auto;
+	height: 400px;
+	overflow: auto;
+	position: relative;
+}
+
+#task_wrapper {
+	position: absolute;
+	bottom: 0;
+}
+
 #messages {
 	background-color: rgba(255, 255, 255, 0.4);
 	-moz-box-shadow: 1px 1px 3px 3px #3D3D3D;
@@ -9,9 +26,16 @@
 	overflow: auto;
 }
 
-#messaging_content {
+#task_content {
+	margin-left: 5%;
 	display: inline-block;
-	width: 99%;
+	width: 30%;
+}
+
+#messaging_content {
+	margin-left: 3%;
+	display: inline-block;
+	width: 50%;
 }
 
 #sidebar_content {
@@ -41,6 +65,14 @@
 	right: 0;
 }
 
+.task {
+	color: black;
+	border: 2px outset grey;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+}
+
 .message {
 	color: #000E5E;
 }
@@ -59,7 +91,7 @@
 }
 
 #input_message {
-	width: 90%;
+	width: 85%;
 }
 
 #send_message {

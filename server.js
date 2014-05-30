@@ -51,8 +51,6 @@ server.listen(8080, function() {
 
 sessionSockets.on('connection', function(error, socket, session) {
 	console.log('SOCKET connected');
-	console.log(error);
-	console.log(socket);
 	console.log(session);
 	
 	// check that this socket is associated with a valid session
@@ -61,26 +59,26 @@ sessionSockets.on('connection', function(error, socket, session) {
 		socket.disconnect();
 	}
 	
-	socket.on('join', function(roomID, nickname) {
+	socket.user = session.user.username;
+	
+	socket.on('join', function(roomID) {
 		socket.join(roomID);
-		socket.nickname = nickname;
 		socket.room = roomID;
 		
-		broadcastMembership(socket);
-	});
-
-	// this gets emitted if a user changes their nickname
-	socket.on('nickname', function(nickname) {
-		socket.nickname = nickname;
+		console.log(socket.room);
+		console.log(socket.user);
 		
 		broadcastMembership(socket);
 	});
 
 	// the client emits this when they want to send a message
-	socket.on('cts_message', function(message) {
-		var submitTime = dbops.createMessage(socket.room, socket.nickname, message);
+	socket.on('cts_message', function(data) {
+		var submit_time = dbops.createMessage(socket.room, socket.user, data.msg_reply_to, data.msg_content);
 		
-		socket.broadcast.to(socket.room).emit('stc_message', socket.nickname, message, submitTime); //emit to 'room' except this socket
+		data.msg_author = socket.user;
+		data.msg_time = submit_time;
+		
+		socket.broadcast.to(socket.room).emit('stc_message', data); //emit to 'room' except this socket
 	});
 	
 	// the clients emits this when they want to send a "whisper" - a private message
@@ -88,7 +86,7 @@ sessionSockets.on('connection', function(error, socket, session) {
 		var clients = io.sockets.clients(socket.room);
 		var target_sock;
 		for(var i=0; i<clients.length; i++) {
-			if(clients[i].nickname === target) {
+			if(clients[i].username === target) {
 				target_sock = clients[i];
 			}
 		}
@@ -98,20 +96,20 @@ sessionSockets.on('connection', function(error, socket, session) {
 			return;
 		}
 	
-		target_sock.emit('stc_whisper', socket.nickname, message, (new Date().getTime() / 1000)); // emit only to intended recipient
+		target_sock.emit('stc_whisper', socket.username, message, (new Date().getTime() / 1000)); // emit only to intended recipient
 	});
 	
 	// the client emits this whenever it types into the input field
 	socket.on('cts_typing', function() {
-		socket.broadcast.to(socket.room).emit('stc_typing', socket.nickname);
+		socket.broadcast.to(socket.room).emit('stc_typing', socket.username);
 	});
 	
 	socket.on('cts_user_idle', function() {
-		socket.broadcast.to(socket.room).emit('stc_user_idle', socket.nickname);
+		socket.broadcast.to(socket.room).emit('stc_user_idle', socket.username);
 	});
 
 	socket.on('cts_user_active', function() {
-		socket.broadcast.to(socket.room).emit('stc_user_active', socket.nickname);
+		socket.broadcast.to(socket.room).emit('stc_user_active', socket.username);
 	});
 	
 	// the client disconnected/closed their browser window
@@ -150,7 +148,7 @@ app.get('/rooms/:roomID/messages.json', function(request, response) {
 	var roomID = request.params.roomID;
 
 	// fetch all of the messages for this room
-	dbops.getMessagesForRoom(roomID, function(messagesList) {
+	dbops.getMessagesForRoom(roomID, settings.DEFAULT_MESSAGE_COUNT, function(messagesList) {
 		// encode the messages object as JSON and send it back
 		response.json(messagesList);
 	});
@@ -166,11 +164,11 @@ app.post('/rooms/:roomID/send_message', function(request, response) {
 	}
 	
 	var roomID = request.params.roomID;
-	var nickname = request.session.nickname;
+	var username = request.session.user.username;
 	var message = request.body.message;
 	
-	var submitTime = dbops.createMessage(roomID, nickname, message);
-	response.json(submitTime);
+	var submit_time = dbops.createMessage(roomID, username, message);
+	response.json(submit_time);
 });
 
 // create a new room
@@ -197,16 +195,24 @@ app.post('/add_task/:roomID', function(request, response) {
 		return;
 	}
 	
+	var room_id = request.params.roomID;
 	var author = request.session.user.username;
+	var high_priority = JSON.parse(request.body.high_priority);
 	
-	var submitTime = dbops.createTask(request.params.roomID, author, request.body.title, 
-		false, JSON.parse(request.body.high_priority), request.body.content);
+	var submit_time = dbops.createTask(room_id, author, request.body.title, 
+		false, high_priority, request.body.content);
 	
-	var context = {
-		'success': true,
-		'submit_time': submitTime
+	var task_data = {
+		'task_title': request.body.title, 
+		'task_author': author,
+		'task_high_priority': high_priority,
+		'task_content': request.body.content,
+		'task_time': submit_time
 	};
-	response.json(context);
+	
+	io.sockets.in(room_id).emit('stc_add_task', task_data);
+	
+	response.json({ 'success': true });
 });
 
 // signin with given username and password
@@ -270,16 +276,20 @@ app.get('/rooms/:roomID', function(request, response) {
 	}
 	
 	var roomID = request.params.roomID;
-	var nickname = request.session.nickname;
+	var username = request.session.user.username;
 	dbops.getRoomName(roomID, function(roomName) {
-		dbops.getMessagesForRoom(roomID, function(messagesList) {
-			var context = {
-				'room_id': roomID,
-				'room_name': roomName,
-				'nickname': nickname,
-				'message_temp': messagesList
-			};
-			response.render('room.html', context);
+		dbops.getMessagesForRoom(roomID, settings.DEFAULT_MESSAGE_COUNT, function(message_list) {
+			dbops.getTasksForRoom(roomID, function(task_list) {
+				var context = {
+					'room_id': roomID,
+					'room_name': roomName,
+					'username': username,
+					'message_list': message_list,
+					'task_list': task_list
+				};
+				
+				response.render('room_producer.html', context);
+			});
 		});
 	});
 });

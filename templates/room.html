@@ -33,12 +33,12 @@
 			<div id="messaging_content">
 				<h2>{{ room_name }}</h2>
 				<div id="messages">
-					{{#message_temp}}
+					{{#message_list}}
 						<div class="message" data-msg-time="{{ msg_time }}">
 							<strong>{{ msg_poster }}:</strong>
 							<p>{{ msg_text }}</p>
 						</div>
-					{{/message_temp}}
+					{{/message_list}}
 				</div>
 				<form id="add_message_form"  class="form-inline">
 					<input id="input_message" type="text" placeholder="Hi, {{ nickname }}! Say something…"/>
