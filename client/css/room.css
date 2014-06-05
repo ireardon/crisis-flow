@@ -13,6 +13,8 @@
 #task_wrapper {
 	position: absolute;
 	bottom: 0;
+	max-height: 100%;
+	overflow: visible;
 }
 
 #messages {

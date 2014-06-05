@@ -44,19 +44,20 @@
 						{{/task_list}}
 					</div>
 				</div>
+				<a href="/add_task/{{ room_id }}" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
 			</div>
 			<div id="messaging_content">
 				<div id="messages">
 					{{#message_list}}
 						<div class="message" data-msg-time="{{ time }}">
-							<strong>{{ author }}:</strong>
+							<strong>{{ author }}: (<span class="msg_timeago"></span>)</strong>
 							<p>{{ content }}</p>
 						</div>
 					{{/message_list}}
 				</div>
 				<form id="add_message_form"  class="form-inline">
 					<input id="input_message" type="text" placeholder="Hi, {{ username }}! Say something…" data-reply-to="" data-whisper-to=""/>
-					<input id="send_message" class="btn btn-primary" type="submit" value="Send"></input>
+					<button id="send_message" class="btn btn-primary" type="submit">Send</button>
 				</form>
 			</div>
 			<div id="sidebar">

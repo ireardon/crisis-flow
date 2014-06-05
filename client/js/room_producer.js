@@ -16,11 +16,7 @@ $(document).ready(function() {
 	resetMessageInput();
 	scrollBottom('#messages');
 	scrollBottom('#tasks');
-	$('.task').each(function(i, element) {
-		var $task = $(element);
-		var nice_time = moment.unix($task.data('task-time')).fromNow();
-		$task.find('.task_timeago').text(nice_time);
-	});
+	refreshTimeagos();
 
 	socket.on('error', function(message) { // message is an event object for some reason, not a string
 		console.log(message);
@@ -277,6 +273,20 @@ function getMemberEntryHTML(username, idle) {
 	}
 	
 	return htmlString;
+}
+
+function refreshTimeagos() {
+	$('.task').each(function(i, element) {
+		var $task = $(element);
+		var nice_time = moment.unix($task.data('task-time')).fromNow();
+		$task.find('.task_timeago').text(nice_time);
+	});
+	
+	$('.message').each(function(i, element) {
+		var $msg = $(element);
+		var nice_time = moment.unix($msg.data('msg-time')).fromNow();
+		$msg.find('.msg_timeago').text(nice_time);
+	});
 }
 
 function scrollBottom(element_id) {

@@ -14,6 +14,10 @@ h1,h2,h3,h4,h5,p,a,label {
 	font-family: "Marmelad", "Verdana", sans-serif;
 }
 
+a.btn {
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
 a {
 	text-decoration: none;
 }
