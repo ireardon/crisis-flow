@@ -1,10 +1,12 @@
 var TYPE_DELAY = 2000;
+var TIME_REFRESH_DELAY = 15000;
 var displayed_messages = 0;
 var room_members = [];
 var members_typing_cooldown = {};
 var members_typing_flag = {};
 var glob_roomID, glob_username;
 var typing_interval_id = -1;
+var time_refresh_interval = -1;
 
 $(document).ready(function() {
 	glob_roomID = document.querySelector('meta[name=room_id]').content;
@@ -17,6 +19,8 @@ $(document).ready(function() {
 	scrollBottom('#messages');
 	scrollBottom('#tasks');
 	refreshTimeagos();
+	
+	time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
 
 	socket.on('error', function(message) { // message is an event object for some reason, not a string
 		console.log(message);

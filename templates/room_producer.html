@@ -49,8 +49,9 @@
 			<div id="messaging_content">
 				<div id="messages">
 					{{#message_list}}
-						<div class="message" data-msg-time="{{ time }}">
+						<div class="message" data-id="{{ id }}" data-msg-time="{{ time }}">
 							<strong>{{ author }}: (<span class="msg_timeago"></span>)</strong>
+							<p>In reply to message </p>
 							<p>{{ content }}</p>
 						</div>
 					{{/message_list}}

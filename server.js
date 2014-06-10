@@ -6,8 +6,6 @@ var http = require('http');
 var connect = require('connect');
 var express = require('express');
 var engines = require('consolidate');
-var cookies = require('cookies');
-var cookie = require('cookie');
 var crypto = require('crypto');
 var SocketIOSessions = require('session.socket.io');
 
@@ -26,7 +24,7 @@ var sessionStore = new connect.session.MemoryStore();
 var server = http.createServer(app);
 
 app.configure(function() {
-	app.engine('html', engines.hogan); // tell Express to run .html files through Hogan
+	app.engine('html', engines.hogan); // tell Express to run .html files through Hogan.js template parser
 	app.set('views', __dirname + '/templates'); // tell Express where to find templates
 	app.use(express.static(__dirname));
 	

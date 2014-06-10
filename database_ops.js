@@ -1,6 +1,6 @@
 // this module contains the functions for all database access
 var anyDB = require('any-db');
-var humanize = require('humanize');
+var moment = require('moment');
 
 var settings = require('./settings');
 
@@ -222,7 +222,7 @@ function getMostRecentMessageTime(room_id, callback) {
 	// call callback with result
 	q.on('end', function() {
 		if(mostRecent)
-			mostRecent = humanize.relativeTime(mostRecent);
+			mostRecent = moment.unix(mostRecent).fromNow();
 		else
 			mostRecent = 'None yet!';
 		
