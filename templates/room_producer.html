@@ -11,10 +11,10 @@
 		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/room.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/room_producer.css"></link>
-		<title id="page_title">{{ room_name }} | Chatroom</title>
+		<title id="page_title"><%= @room_name %> | Chatroom</title>
 		
-		<meta name="room_id" content="{{ room_id }}"/>
-		<meta name="username" content="{{ username }}"/>
+		<meta name="room_id" content="<%- @room_id %>"/>
+		<meta name="username" content="<%- @username %>"/>
 		
 		<script src="/socket.io/socket.io.js"></script>
 		<script type="text/javascript">
@@ -32,32 +32,33 @@
 			</div>
 		</div>
 		<div id="body_content">
-			<h2>{{ room_name }}</h2>
+			<h2><%= @room_name %></h2>
 			<div id="task_content">
 				<div id="tasks">
 					<div id="task_wrapper">
-						{{#task_list}}
-							<div class="task" data-task-time="{{ time }}" data-task-high-priority="{{ high_priority }}" data-task-content="{{ content }}">
-								<strong class="task_title">{{ title }}</strong>
-								<p class="task_author">Submitted by {{ author }} (<span class="task_timeago"></span>)</p>
+						<% for task in @task_list : %>
+							<div class="task" data-task-id="<%- task.id %>" data-task-time="<%- task.time %>" 
+							data-task-high-priority="<%- task.high_priority %>" data-task-content="<%= task.content %>">
+								<strong class="task_title"><%= task.title %></strong>
+								<p class="task_author">Submitted by <%= task.author %> (<span class="task_timeago"></span>)</p>
 							</div>
-						{{/task_list}}
+						<% end %>
 					</div>
 				</div>
 				<a href="/add_task/{{ room_id }}" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
 			</div>
 			<div id="messaging_content">
 				<div id="messages">
-					{{#message_list}}
-						<div class="message" data-id="{{ id }}" data-msg-time="{{ time }}">
-							<strong>{{ author }}: (<span class="msg_timeago"></span>)</strong>
+					<% for message in @message_list : %>
+						<div class="message" data-id="<%- message.id %>" data-msg-time="<%- message.time %>">
+							<strong><%= message.author %>: (<span class="msg_timeago"></span>)</strong>
 							<p>In reply to message </p>
-							<p>{{ content }}</p>
+							<p><%= message.content %></p>
 						</div>
-					{{/message_list}}
+					<% end %>
 				</div>
 				<form id="add_message_form"  class="form-inline">
-					<input id="input_message" type="text" placeholder="Hi, {{ username }}! Say something…" data-reply-to="" data-whisper-to=""/>
+					<input id="input_message" type="text" placeholder="Hi, <%- @username %>! Say something…" data-reply-to="" data-whisper-to=""/>
 					<button id="send_message" class="btn btn-primary" type="submit">Send</button>
 				</form>
 			</div>

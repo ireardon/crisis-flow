@@ -32,14 +32,14 @@
 				</div>
 			</div>
 			<div id="rooms_list">
-				{{#room_temp}}
-					<div class="room" data_room_id="{{ room_id }}">
-						<a href="/rooms/{{ room_id }}">
-							<h4>{{ room_name }}</h4>
-							<p>Last post: {{ last_post_time }}</p>
+				<% for room in @room_list : %>
+					<div class="room" data_room_id="<%- room.room_id %>">
+						<a href="/rooms/<%- room.room_id %>">
+							<h4><%= room.room_name %></h4>
+							<p>Last post: <%- room.last_post_time %></p>
 						</a>
 					</div>
-				{{/room_temp}}
+				<% end %>
 			</div>
 		</div>
 	</body>

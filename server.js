@@ -24,7 +24,7 @@ var sessionStore = new connect.session.MemoryStore();
 var server = http.createServer(app);
 
 app.configure(function() {
-	app.engine('html', engines.hogan); // tell Express to run .html files through Hogan.js template parser
+	app.engine('html', engines.ect); // tell Express to run .html files through ECT template parser
 	app.set('views', __dirname + '/templates'); // tell Express where to find templates
 	app.use(express.static(__dirname));
 	
@@ -318,7 +318,7 @@ app.get('/index', function(request, response) {
 	
 	dbops.getAllRooms(function(roomsList) {
 		var context = {
-			'room_temp': roomsList
+			'room_list': roomsList
 		};
 		response.render('index.html', context);
 	});
