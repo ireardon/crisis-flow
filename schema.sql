@@ -24,7 +24,7 @@ CREATE TABLE messages (
     id INTEGER PRIMARY KEY,
     room TEXT,
     author TEXT,
-	reply INTEGER,
+	reply INTEGER, -- to indicate that this is a top-level message, we use a negative number
     content TEXT,
     time INTEGER,
 	FOREIGN KEY(room) REFERENCES rooms(id),

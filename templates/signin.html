@@ -14,11 +14,7 @@
 		<meta name="server_salt" content="<%- @server_salt %>"/>
 	</head>
 	<body>
-		<div id="menu_bar" class="navbar navbar-static-top navbar-inverse">
-			<div class="navbar-inner">
-				<a id="chatroom_brand" class="brand" href="/">CHATROOM</a>
-			</div>
-		</div>
+		<% include "navbar_signin.html" %>
 		<div id="body_content">
 			<h2>Welcome to Chatroom!</h2>
 			<div id="signin_wrapper">
@@ -27,6 +23,7 @@
 					<input id="password" type="password" placeholder="Password"/>
 					<button id="submit_signin" class="btn btn-primary" type="submit">Sign in</button>
 				</form>
+				<p>Don't have an account? <a href="/signup">Sign up here</a>.</p>
 			</div>
 		</div>
 	</body>

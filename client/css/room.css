@@ -43,7 +43,8 @@
 #sidebar_content {
 	display: none;
 	text-align: center;
-	margin: 20px auto;
+	margin: auto;
+	margin-top: 70px;
 	color: white;
 }
 
@@ -64,6 +65,7 @@
 	height: 100%;
 	width: 25px;
 	position: absolute;
+	top: 0;
 	right: 0;
 }
 

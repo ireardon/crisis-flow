@@ -14,22 +14,15 @@
 		<meta name="room_id" content="<%- @room_id %>"/>
 	</head>
 	<body>
-		<div id="menu_bar" class="navbar navbar-static-top navbar-inverse">
-			<div class="navbar-inner">
-				<a id="chatroom_brand" class="brand" href="/">CHATROOM</a>
-				<ul class="nav">
-					<li id="rooms_menu" class="menu_item"><a href="/index">Rooms</a></li>
-					<li id="signout_menu" class="menu_item"><a href="/signout">Sign out</a></li>
-				</ul>
-			</div>
-		</div>
+		<% include "navbar.html" %>
 		<div id="body_content">
 			<h2>Add directive</h2>
 			<form id="add_task_form"  class="form">
-				<input id="task_title" type="text" placeholder="Title"/>
-				<textarea id="task_content" placeholder="Enter the contents of the directive here..."></textarea>
+				<input id="task_title" type="text" class="form-control" placeholder="Title"/>
+				<textarea id="task_content" class="form-control" placeholder="Enter the contents of the directive here..."></textarea>
 				<button id="task_high_priority" type="button" class="btn btn-default">Mark as high priority</button>
 				<button id="submit_task" class="btn btn-primary" type="submit">Submit directive</button>
+				<a href="/rooms/<%- @room_id %>" id="never_mind" class="btn btn-default" role="button" type="submit">Never mind</a>
 			</form>
 		</div>
 	</body>

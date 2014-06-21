@@ -7,6 +7,7 @@ var connect = require('connect');
 var express = require('express');
 var engines = require('consolidate');
 var crypto = require('crypto');
+var ECT = require('ect');
 var SocketIOSessions = require('session.socket.io');
 
 var settings = require('./settings');
@@ -21,10 +22,14 @@ var app = express();
 var cookieParser = express.cookieParser(settings.COOKIE_SIGN_SECRET);
 var sessionStore = new connect.session.MemoryStore();
 
+var ectEngine = ECT({ watch: true, root: __dirname + '/templates', ext: '.html' });
+
 var server = http.createServer(app);
 
 app.configure(function() {
-	app.engine('html', engines.ect); // tell Express to run .html files through ECT template parser
+	app.engine('html', ectEngine.render); // tell Express to run .html files through ECT template parser
+	app.set('view engine', 'html');
+	
 	app.set('views', __dirname + '/templates'); // tell Express where to find templates
 	app.use(express.static(__dirname));
 	
@@ -49,7 +54,6 @@ server.listen(8080, function() {
 
 sessionSockets.on('connection', function(error, socket, session) {
 	console.log('SOCKET connected');
-	console.log(session);
 	
 	// check that this socket is associated with a valid session
 	if(!sessionValid(session)) {
@@ -218,7 +222,6 @@ app.post('/signin', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
 	var username = request.body.username;
-	console.log(username);
 
 	dbops.getUser(username, function(user) {
 		if(!user) {
@@ -229,7 +232,6 @@ app.post('/signin', function(request, response) {
 		request.session.user = user;
 		
 		var valid_password = verifyPasswordHash(user, request.body.client_salted_hash, request.body.client_salt, request.session.server_salt);
-		console.log(valid_password);
 		
 		if(valid_password) {
 			delete request.session.server_salt;
