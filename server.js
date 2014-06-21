@@ -2,12 +2,15 @@
   #            REQUIRES             #
   ###################################*/
 
-var http = require('http');
+var bodyParser = require('body-parser');
 var connect = require('connect');
-var express = require('express');
 var engines = require('consolidate');
+var cookieParser = require('cookie-parser');
 var crypto = require('crypto');
 var ECT = require('ect');
+var express = require('express');
+var expSession = require('express-session');
+var http = require('http');
 var SocketIOSessions = require('session.socket.io');
 
 var settings = require('./settings');
@@ -19,27 +22,24 @@ var dbops = require('./database_ops');
 
 var app = express();
 
-var cookieParser = express.cookieParser(settings.COOKIE_SIGN_SECRET);
 var sessionStore = new connect.session.MemoryStore();
 
 var ectEngine = ECT({ watch: true, root: __dirname + '/templates', ext: '.html' });
 
 var server = http.createServer(app);
 
-app.configure(function() {
-	app.engine('html', ectEngine.render); // tell Express to run .html files through ECT template parser
-	app.set('view engine', 'html');
-	
-	app.set('views', __dirname + '/templates'); // tell Express where to find templates
-	app.use(express.static(__dirname));
-	
-	app.use(cookieParser);
-	app.use(express.session({
-		key: settings.COOKIE_SESSION_KEY,
-		store: sessionStore
-	}));
-	app.use(express.bodyParser()); // definitely use this feature
-});
+app.engine('html', ectEngine.render); // tell Express to run .html files through ECT template parser
+app.set('view engine', 'html');
+
+app.set('views', __dirname + '/templates'); // tell Express where to find templates
+app.use(express.static(__dirname));
+
+app.use(cookieParser(settings.COOKIE_SIGN_SECRET));
+app.use(expSession({
+	key: settings.COOKIE_SESSION_KEY,
+	store: sessionStore
+}));
+app.use(bodyParser.urlencoded({ extended: true })); // definitely use this feature
 
 var io = require('socket.io').listen(server);
 var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser, settings.COOKIE_SESSION_KEY);
@@ -396,8 +396,6 @@ function getAccessRole(access_code_salted_hash, client_salt, server_salt) {
 	for(var i=0; i<access_roles.length; i++) {
 		var key = access_roles[i] + client_salt + server_salt;
 		var role_code_salted_hash = crypto.createHash('sha256').update(key).digest('hex');
-		console.log(i);
-		console.log(role_code_salted_hash);
 		
 		if(access_code_salted_hash === role_code_salted_hash) {
 			return i + 1;
