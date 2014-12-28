@@ -6,27 +6,32 @@ var bodyParser = require('body-parser');
 var connect = require('connect');
 var engines = require('consolidate');
 var cookieParser = require('cookie-parser');
+var cookie = require('cookie');
 var crypto = require('crypto');
 var ECT = require('ect');
 var express = require('express');
-var expSession = require('express-session');
+var expressSession = require('express-session');
 var http = require('http');
-var SocketIOSessions = require('session.socket.io');
+var socketIO = require('socket.io');
+var SQLiteStore = require('connect-sqlite3')(expressSession);
 
 var settings = require('./settings');
 var dbops = require('./database_ops');
+var getcookie = require('./getcookie');
 
 /*###################################
   #          CONFIGURATION          #
   ###################################*/
 
+var port = process.env.PORT || 8080;
 var app = express();
 
-var sessionStore = new connect.session.MemoryStore();
+var sessionStore = new SQLiteStore({ table: settings.SESSION_DB_TABLENAME });
 
 var ectEngine = ECT({ watch: true, root: __dirname + '/templates', ext: '.html' });
 
 var server = http.createServer(app);
+var io = socketIO(server);
 
 app.engine('html', ectEngine.render); // tell Express to run .html files through ECT template parser
 app.set('view engine', 'html');
@@ -35,16 +40,16 @@ app.set('views', __dirname + '/templates'); // tell Express where to find templa
 app.use(express.static(__dirname));
 
 app.use(cookieParser(settings.COOKIE_SIGN_SECRET));
-app.use(expSession({
-	key: settings.COOKIE_SESSION_KEY,
-	store: sessionStore
+app.use(expressSession({
+	name: settings.COOKIE_SESSION_KEY,
+	secret: settings.COOKIE_SIGN_SECRET,
+	store: sessionStore,
+	saveUninitialized: false,
+	resave: false
 }));
 app.use(bodyParser.urlencoded({ extended: true })); // definitely use this feature
 
-var io = require('socket.io').listen(server);
-var sessionSockets = new SocketIOSessions(io, sessionStore, cookieParser, settings.COOKIE_SESSION_KEY);
-
-server.listen(8080, function() {
+server.listen(port, function() {
 	console.log("LISTENING on port 8080");
 });
 
@@ -52,20 +57,53 @@ server.listen(8080, function() {
   #            SOCKET IO            #
   ###################################*/
 
-sessionSockets.on('connection', function(error, socket, session) {
+io.use(function(socket, next) {
+	var sessionId = getcookie.getcookie(socket.request, settings.COOKIE_SESSION_KEY, settings.COOKIE_SIGN_SECRET);
+	
+	sessionStore.get(sessionId, function(storeError, session) {
+		if (!session) {
+			next(new Error("Not authorized"));
+		}
+
+		socket.session = session;
+		next();
+	});
+});
+
+var clientDirectory = io.sockets.clientDirectory = {};
+io.sockets.clients = function(roomID) {
+	if (roomID) {
+		return clientDirectory[roomID];
+	}
+	
+	var clientList = [];
+	for (var room in clientDirectory) {
+		clientList.concat(clientDirectory[list]);
+	}
+	return clientList;
+};
+
+io.sockets.on('connection', function(socket) {
 	console.log('SOCKET connected');
 	
 	// check that this socket is associated with a valid session
-	if(!sessionValid(session)) {
+	if(!sessionValid(socket.session)) {
 		socket.emit('error', "Session is invalid");
 		socket.disconnect();
 	}
 	
-	socket.user = session.user.username;
+	socket.user = socket.session.user.username;
 	
 	socket.on('join', function(roomID) {
+		console.log('ROOM JOINED');
 		socket.join(roomID);
 		socket.room = roomID;
+		
+		if (clientDirectory[roomID]) {
+			clientDirectory[roomID].push(socket.user);
+		} else {
+			clientDirectory[roomID] = [socket.user];
+		}
 		
 		console.log(socket.room);
 		console.log(socket.user);
@@ -75,6 +113,7 @@ sessionSockets.on('connection', function(error, socket, session) {
 
 	// the client emits this when they want to send a message
 	socket.on('cts_message', function(data) {
+		console.log('MESSAGE RECEIVED');
 		var submit_time = dbops.createMessage(socket.room, socket.user, data.msg_reply_to, data.msg_content);
 		
 		data.msg_author = socket.user;
@@ -101,6 +140,13 @@ sessionSockets.on('connection', function(error, socket, session) {
 		target_sock.emit('stc_whisper', socket.username, message, (new Date().getTime() / 1000)); // emit only to intended recipient
 	});
 	
+	// the client emits this whenever the user marks a task as completed
+	socket.on('cts_task_completed', function(task_id) {
+		console.log('RECEIVED task completed');
+		dbops.completeTask(task_id);
+		socket.broadcast.to(socket.room).emit('stc_task_completed', task_id);
+	});
+	
 	// the client emits this whenever it types into the input field
 	socket.on('cts_typing', function() {
 		socket.broadcast.to(socket.room).emit('stc_typing', socket.username);
@@ -123,6 +169,8 @@ sessionSockets.on('connection', function(error, socket, session) {
 		// but this is clearly a lie, because it doesn't work
 		// fetch all sockets in a room
 		socket.leave(roomID);
+		var sockIndex = clientDirectory[roomID].indexOf(socket.user);
+		clientDirectory[roomID].splice(sockIndex, 1);
 		
 		var clients = io.sockets.clients(roomID);
 		// pull the nicknames out of the socket objects using array.map(...)
@@ -288,7 +336,7 @@ app.get('/rooms/:roomID', function(request, response) {
 					'task_list': task_list
 				};
 				
-				response.render('room_producer.html', context);
+				response.render('room.html', context);
 			});
 		});
 	});
@@ -313,6 +361,7 @@ app.get('/add_task/:roomID', function(request, response) {
 app.get('/index', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 
+	console.log(request.session);
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
 		return;
@@ -417,12 +466,12 @@ function getSaltBits() {
 
 function broadcastMembership(socket) {
 	// fetch all sockets in a room
-    var clients = io.sockets.clients(socket.room);
+	var clients = io.sockets.clients(socket.room);
 
-    // pull the nicknames out of the socket objects using array.map(...)
-    var nicknames = clients.map(function(s){
-        return s.nickname;
-    });
+	// pull the nicknames out of the socket objects using array.map(...)
+	var nicknames = clients.map(function(s){
+		return s.nickname;
+	});
 	
 	socket.emit('membership_change', nicknames); // the socket that caused this wants the updated list too
 	socket.broadcast.to(socket.room).emit('membership_change', nicknames); // everybody else

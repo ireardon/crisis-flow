@@ -18,6 +18,7 @@ $(document).ready(function() {
 	resetMessageInput();
 	scrollBottom('#messages');
 	scrollBottom('#tasks');
+	renderTimes();
 	refreshTimeagos();
 	
 	time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
@@ -96,7 +97,7 @@ $(document).ready(function() {
 		
 		var $input_message = $('#input_message');
 		
-		if(!$input_message.val())
+		if(!$input_message.val()) // insure message is non-empty
 			return false;
 		
 		if($input_message.data('whisper-to')) { // whisper
@@ -277,6 +278,14 @@ function getMemberEntryHTML(username, idle) {
 	}
 	
 	return htmlString;
+}
+
+function renderTimes() {
+	$('.task_detail').each(function(i, element) {
+		var $task = $(element);
+		var nice_time = moment.unix($task.data('task-time')).format('h:mma [on] MMM D, YYYY');
+		$task.find('.task_time').text(nice_time);
+	});
 }
 
 function refreshTimeagos() {

@@ -4,20 +4,23 @@ var moment = require('moment');
 
 var settings = require('./settings');
 
-var conn = anyDB.createConnection(settings.ANYDB_CONNECT_ID);
+var conn = anyDB.createConnection(settings.DATA_ANYDB_CONNECT_ID);
+var sessionConn = anyDB.createConnection(settings.SESSION_ANYDB_CONNECT_ID);
 
 module.exports = {
 	'createUser': createUser,
 	'createRoom': createRoom,
 	'createMessage': createMessage,
 	'createTask': createTask,
+	'getSessionRecord': getSessionRecord,
 	'getUser': getUser,
 	'getRoomName': getRoomName,
 	'getAllRooms': getAllRooms,
 	'getAllMostRecents': getAllMostRecents,
 	'getMessagesForRoom': getMessagesForRoom,
 	'getTasksForRoom': getTasksForRoom,
-	'getMostRecentMessageTime': getMostRecentMessageTime
+	'getMostRecentMessageTime': getMostRecentMessageTime,
+	'completeTask': completeTask
 };
 
 /*###################################
@@ -26,23 +29,33 @@ module.exports = {
 
 function createUser(username, password_hash, role) {
 	var sql = 'INSERT INTO users(username, password_hash, role) VALUES($1, $2, $3);';
-	var q = conn.query(sql, [username, password_hash, role]);
-	q.on('err', function(err) { // if this username is already in use, try again
+	var q = conn.query(sql, [username, password_hash, role], function(error, result) {
+		console.log(error);
+		console.log(result);
+	});
+	
+	console.log(sql);
+	/*
+	q.on('error', function() { // if this username is already in use, try again
+		console.log('FAILED user ' + username + 'already exists');
+		console.log(error);
 		return null;
 	});
 	q.on('end', function() {
 		console.log('ADDED user ' + username + ' to database');
 	});
+	*/
 	
 	return username;
 }
 
 function createRoom(roomName) {
-	var room_id = generateroom_identifier();
+	var room_id = generate_room_identifier();
 
 	var sql = 'INSERT INTO rooms(id, name) VALUES($1, $2);';
 	var q = conn.query(sql, [room_id, roomName]);
-	q.on('err', function(err) { // if the room id is already in use, try again
+	q.on('error', function(error) { // if the room id is already in use, try again
+		console.log(error);
 		room_id = createRoom(roomName);
 	});
 	q.on('end', function() {
@@ -53,6 +66,7 @@ function createRoom(roomName) {
 }
 
 function createMessage(room_id, author, replyTo, content) {
+	console.log('CREATING MESSAGE?');
 	var currTime = new Date().getTime() / 1000;
 	
 	if(!replyTo) { // to indicate that this is a top-level message, we use a negative number
@@ -85,6 +99,21 @@ function createTask(room_id, author, title, completed, high_priority, content) {
   #       RETRIEVAL FUNCTIONS       #
   ###################################*/
 
+function getSessionRecord(sessionKey, callback) {
+	var session;
+
+	var sql = 'SELECT * FROM sessions WHERE sid = $1;';
+	var q = sessionConn.query(sql, [sessionKey]);
+	q.on('row', function(row) {
+		session = row;
+	});
+	
+	q.on('end', function() {
+		if (validCallback(callback))
+			callback(session);
+	});
+}
+  
 function getUser(username, callback) {
 	var user;
 
@@ -263,6 +292,19 @@ function getReplies(aggregated_messages_list, ids_list, callback) {
 }
 
 /*###################################
+  #         UPDATE FUNCTIONS        #
+  ###################################*/
+
+function completeTask(task_id, callback) {
+	var sql = 'UPDATE tasks SET completed=1 WHERE id=$1';
+	var q = conn.query(sql, task_id);
+	
+	q.on('end', function() {
+		console.log('TASK ' + task_id + ' set to completed');
+	});
+}
+
+/*###################################
   #        SUPPORT FUNCTIONS        #
   ###################################*/
 
@@ -270,7 +312,7 @@ function validCallback(callback) {
 	return callback && typeof(callback) === 'function';
 }
 
-function generateroom_identifier() {
+function generate_room_identifier() {
 	// make a list of legal characters
 	// we're intentionally excluding 0, O, I, and 1 for readability
 	var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

@@ -11,7 +11,7 @@
 		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/room.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/room_producer.css"></link>
-		<title id="page_title"><%= @room_name %> | Chatroom</title>
+		<title id="page_title"><%= @room_name %> | Crisis Flow</title>
 		
 		<meta name="room_id" content="<%- @room_id %>"/>
 		<meta name="username" content="<%- @username %>"/>
@@ -22,6 +22,32 @@
 		</script>
 	</head>
 	<body>
+		<% for task in @task_list : %>
+			<!-- modal dialog containing task details (starts hidden) -->
+			<div id="task_<%- task.id %>_detail" class="task_detail modal fade" role="dialog" aria-hidden="true" 
+			data-task-id="<%- task.id %>" data-task-time="<%- task.time %>" data-task-high-priority="<%- task.high_priority %>" 
+			data-task-content="<%= task.content %>">
+				<div class="modal-dialog">
+					<div class="modal-content">
+						<div class="modal-header">
+							<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+							<h3 class="modal-title"><%= task.title %></h3>
+							<% if task.high_priority : %>
+								<h4 class="task_detail_priority">High Priority</h4>
+							<% end %>
+							<p class="task_detail_profile">Submitted by <%= task.author %> (<span class="task_time"></span>)</p>
+						</div>
+						<div class="modal-body">
+							<p>One fine body&hellip;</p>
+						</div>
+						<div class="modal-footer">
+							<button type="button" class="btn btn-primary">Mark as completed</button>
+							<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		<% end %>
 		<% include "navbar.html" %>
 		<div id="body_content">
 			<h2><%= @room_name %></h2>
@@ -29,9 +55,10 @@
 				<div id="tasks">
 					<div id="task_wrapper">
 						<% for task in @task_list : %>
-							<div class="task" data-task-id="<%- task.id %>" data-task-time="<%- task.time %>" 
+							<!-- task entry in task queue -->
+							<div id="task_<%- task.id %>" class="task" data-task-id="<%- task.id %>" data-task-time="<%- task.time %>" 
 							data-task-high-priority="<%- task.high_priority %>" data-task-content="<%= task.content %>">
-								<strong class="task_title"><%= task.title %></strong>
+								<a class="task_title" data-toggle="modal" data-target="#task_<%- task.id %>_detail"><%= task.title %></a>
 								<p class="task_author">Submitted by <%= task.author %> (<span class="task_timeago"></span>)</p>
 							</div>
 						<% end %>

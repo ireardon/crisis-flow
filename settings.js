@@ -7,7 +7,11 @@ var COOKIE_SIGN_SECRET = 'genericsecret';
 var COOKIE_SESSION_KEY = 'crisis_flow_session';
 
 // the any-db identifier for your database backend
-var ANYDB_CONNECT_ID = 'sqlite3://chatroom.db';
+var DATA_ANYDB_CONNECT_ID = 'sqlite3://chatroom.db';
+
+var SESSION_ANYDB_CONNECT_ID = 'sqlite3://sessions.db';
+
+var SESSION_DB_TABLENAME = 'sessions';
 
 // the length of the salt string used in hashing the user's password etc.
 var SALT_LENGTH = 20;
@@ -22,7 +26,9 @@ var DEFAULT_MESSAGE_COUNT = 50;
 module.exports = {
 	'COOKIE_SIGN_SECRET': COOKIE_SIGN_SECRET,
 	'COOKIE_SESSION_KEY': COOKIE_SESSION_KEY,
-	'ANYDB_CONNECT_ID': ANYDB_CONNECT_ID,
+	'DATA_ANYDB_CONNECT_ID': DATA_ANYDB_CONNECT_ID,
+	'SESSION_ANYDB_CONNECT_ID': SESSION_ANYDB_CONNECT_ID,
+	'SESSION_DB_TABLENAME': SESSION_DB_TABLENAME,
 	'SALT_LENGTH': SALT_LENGTH,
 	'ROOM_ID_LENGTH': ROOM_ID_LENGTH,
 	'DEFAULT_MESSAGE_COUNT': DEFAULT_MESSAGE_COUNT

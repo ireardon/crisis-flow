@@ -1,25 +1,37 @@
 var TYPE_DELAY = 2000;
+var TIME_REFRESH_DELAY = 15000;
 var displayed_messages = 0;
 var room_members = [];
 var members_typing_cooldown = {};
 var members_typing_flag = {};
-var glob_roomID, glob_nickname;
+var glob_roomID, glob_username;
 var typing_interval_id = -1;
+var time_refresh_interval = -1;
 
 $(document).ready(function() {
 	glob_roomID = document.querySelector('meta[name=room_id]').content;
-	glob_nickname = document.querySelector('meta[name=nickname]').content;
-	socket.emit('join', glob_roomID, glob_nickname);
+	glob_username = document.querySelector('meta[name=username]').content;
+	socket.emit('join', glob_roomID, glob_username);
 	
 	typing_interval_id = window.setInterval(checkTyping, TYPE_DELAY);
 	
-	scrollMessagesBottom();
+	resetMessageInput();
+	scrollBottom('#messages');
+	scrollBottom('#tasks');
+	renderTimes();
+	refreshTimeagos();
+	
+	time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
 
 	socket.on('error', function(message) { // message is an event object for some reason, not a string
 		console.log(message);
-		console.error('Error: Web socket disconnected: ' + message);
+		console.error('Error: Web socket disconnected: ', message);
 		alert('Error: Web socket disconnected: ' + message);
 		window.location.href = '/';
+	});
+	
+	socket.on('stc_add_task', function(task_data) {
+		console.log(task_data);
 	});
 	
 	socket.on('membership_change', function(members) {
@@ -36,45 +48,45 @@ $(document).ready(function() {
 		}
 	});
 	
-	socket.on('stc_message', function(nickname, message, time) {
-		removeTypingNote(nickname);
-		displayMessage(nickname, message, time);
+	socket.on('stc_message', function(username, message, time) {
+		removeTypingNote(username);
+		displayMessage(username, message, time);
 	});
 	
-	socket.on('stc_whisper', function(nickname, message, time) {
-		displayMessage(nickname + ' (whisper to you)', message, time);
+	socket.on('stc_whisper', function(username, message, time) {
+		displayMessage(username + ' (whisper to you)', message, time);
 	});
 	
-	socket.on('stc_typing', function(nickname) {
-		if(!members_typing_cooldown[nickname]) {
-			members_typing_cooldown[nickname] = true;
+	socket.on('stc_typing', function(username) {
+		if(!members_typing_cooldown[username]) {
+			members_typing_cooldown[username] = true;
 		}
 		
-		if(!members_typing_flag[nickname]) {
-			addTypingNote(nickname);
-			members_typing_flag[nickname] = true;
+		if(!members_typing_flag[username]) {
+			addTypingNote(username);
+			members_typing_flag[username] = true;
 		}
 	});
 	
-	socket.on('stc_user_idle', function(nickname) {
-		var $member_entry = $('#member_' + nickname);
+	socket.on('stc_user_idle', function(username) {
+		var $member_entry = $('#member_' + username);
 		var idle = $member_entry.data('idle');
 		
 		if(!idle) {
 			$member_entry.data('idle', true);
-			var htmlString = getMemberEntryHTML(nickname, true);
+			var htmlString = getMemberEntryHTML(username, true);
 			$member_entry.empty();
 			$member_entry.append(htmlString);
 		}
 	});
 	
-	socket.on('stc_user_active', function(nickname) {
-		var $member_entry = $('#member_' + nickname);
+	socket.on('stc_user_active', function(username) {
+		var $member_entry = $('#member_' + username);
 		var idle = $member_entry.data('idle');
 		
 		if(idle) {
 			$member_entry.data('idle', false);
-			var htmlString = getMemberEntryHTML(nickname, false);
+			var htmlString = getMemberEntryHTML(username, false);
 			$member_entry.empty();
 			$member_entry.append(htmlString);
 		}
@@ -83,44 +95,27 @@ $(document).ready(function() {
 	$('#add_message_form').submit(function(event) {
 		event.preventDefault();
 		
-		var new_message_content = $('#input_message').val();
-		if(!new_message_content)
+		var $input_message = $('#input_message');
+		
+		if(!$input_message.val())
 			return false;
 		
-		if(new_message_content[0] === '@') { // whisper
-			var tokens = new_message_content.split(' ');
-			var target_name = tokens[0].substring(1);
-			
-			if(target_name === glob_nickname) {
-				$('#input_message').attr('placeholder', "No, curious cat. You can't whisper to yourself.");
-				$('#input_message').val('');
-				return false;
-			}
-			
-			var valid = false;
-			for(var i=0; i<room_members.length; i++) { // make sure the person we're trying to whisper to is in the room
-				if(room_members[i] === target_name) {
-					valid = true;
-				}
-			}
-			
-			if(!valid) {
-				alert('You cannot send a private message to "' + target_name + '" because he or she is not in this room!');
-				return false;
-			}
-			
-			var trunc_msg_content = new_message_content.substring(target_name.length + 2);
-			
-			socket.emit('cts_whisper', target_name, trunc_msg_content);
-			displayMessage(glob_nickname + ' (whisper to ' + target_name + ')', trunc_msg_content, (new Date().getTime() / 1000));
+		if($input_message.data('whisper-to')) { // whisper
+			sendWhisper();
 		} else { // normal message
-			socket.emit('cts_message', new_message_content);
-			displayMessage(glob_nickname, new_message_content, (new Date().getTime() / 1000));
+			sendMessage();
 		}
 		
-		$('#input_message').val('');
+		resetMessageInput();
 		
 		return false;
+	});
+	
+	$('.task_completed').on('click', function() {
+		var task_id = $(this).data('task-id');
+		console.log(task_id);
+		socket.emit('cts_task_completed', task_id);
+		console.log('Message emitted!');
 	});
 	
 	$('#input_message').keypress(function(e) {
@@ -174,21 +169,74 @@ $(document).ready(function() {
 	});
 });
 
-function initWhisper(member) {
-	var $member = $(member);
-	var member_name = $member.data('member');
+function sendWhisper(whisper_content) {
+	var tokens = whisper_content.split(' ');
+	var target_name = tokens[0].substring(1);
 	
-	$('#input_message').val('@' + member_name + ' ');
-	$('#input_message').focus();
+	if(target_name === glob_username) {
+		$('#input_message').attr('placeholder', "No, curious cat. You can't whisper to yourself.");
+		$('#input_message').val('');
+		return false;
+	}
+	
+	var valid = false;
+	for(var i=0; i<room_members.length; i++) { // make sure the person we're trying to whisper to is in the room
+		if(room_members[i] === target_name) {
+			valid = true;
+		}
+	}
+	
+	if(!valid) {
+		alert('You cannot send a private message to "' + target_name + '" because he or she is not in this room!');
+		return false;
+	}
+	
+	var trunc_msg_content = whisper_content.substring(target_name.length + 2);
+	
+	socket.emit('cts_whisper', target_name, trunc_msg_content);
+	displayMessage(glob_username + ' (whisper to ' + target_name + ')', trunc_msg_content, (new Date().getTime() / 1000));
 }
 
-function displayMessage(poster, text, time) {
+function sendMessage() {
+	var $input_message = $('#input_message');
+
+	var reply_to = $input_message.data('reply-to');
+	var content = $input_message.val();
+	
+	var msg_data = {
+		'msg_content': content,
+		'msg_reply_to': reply_to
+	};
+	
+	socket.emit('cts_message', msg_data);
+	console.log('emitting');
+	console.log(msg_data);
+	displayMessage(glob_username, reply_to, content, (new Date().getTime() / 1000));
+}
+
+function initWhisper(member) {
+	var $input_message = $('#input_message');
+	var member_name = $(member).data('member');
+	
+	$input_message.data('whisper-to', member_name);
+	$input_message.val('@' + member_name + ' ');
+	$input_message.focus();
+}
+
+function resetMessageInput() {
+	var $input_message = $('#input_message');
+	$input_message.data('reply-to', null);
+	$input_message.data('whisper-to', null);
+	$input_message.val('');
+}
+
+function displayMessage(author, reply_to, content, time) {
 	displayed_messages += 1;
 	
 	var htmlString = '<div class="message" data-msg-time="' + time + '">';
-	htmlString += '<strong>' + poster + ':</strong> <p>' + text + '</p></div>';
+	htmlString += '<strong>' + author + ':</strong> <p>' + content + '</p></div>';
 	$('#messages').append(htmlString);
-	scrollMessagesBottom();
+	scrollBottom('#messages');
 	
 	while(displayed_messages > 500) { // if there are too many messages to display, start removing old messages
 		$('#messages .message').first().remove();
@@ -207,41 +255,63 @@ function checkTyping() {
 	}
 }
 
-function addTypingNote(nickname) {
-	var htmlString = '<div class="message typing_notification" id="' + nickname + '_typing_notification" data-msg-time="' + -1 + '">';
-	htmlString += '<p>' + nickname + ' is typing...</p></div>';
+function addTypingNote(username) {
+	var htmlString = '<div class="message typing_notification" id="' + username + '_typing_notification" data-msg-time="' + -1 + '">';
+	htmlString += '<p>' + username + ' is typing...</p></div>';
 	$('#messages').append(htmlString);
 	
-	scrollMessagesBottom();
+	scrollBottom('#messages');
 }
 
-function removeTypingNote(nickname) {
-	if(members_typing_flag[nickname]) {
-		var note_id = '#' + nickname + '_typing_notification';
+function removeTypingNote(username) {
+	if(members_typing_flag[username]) {
+		var note_id = '#' + username + '_typing_notification';
 		$(note_id).remove();
-		members_typing_flag[nickname] = false;
+		members_typing_flag[username] = false;
 		
-		scrollMessagesBottom();
+		scrollBottom('#messages');
 	}
 }
 
-function getMemberEntryHTML(nickname, idle) {
+function getMemberEntryHTML(username, idle) {
 	var htmlString = '';
 	var idleContent = '';
 	if(idle) {
 		idleContent = ' (idle)';
 	}
 	
-	if(nickname === glob_nickname) { // shouldn't be able to whisper to yourself
-		htmlString = nickname + idleContent;
+	if(username === glob_username) { // shouldn't be able to whisper to yourself
+		htmlString = username + idleContent;
 	} else {
-		htmlString = '<a class="member" data-member="' + nickname + '" onclick="initWhisper(this);" href="#">' + nickname + idleContent + '</a>';
+		htmlString = '<a class="member" data-member="' + username + '" onclick="initWhisper(this);" href="#">' + username + idleContent + '</a>';
 	}
 	
 	return htmlString;
 }
 
-function scrollMessagesBottom() {
-	var $messages = $('#messages');
+function renderTimes() {
+	$('.task_detail').each(function(i, element) {
+		var $task = $(element);
+		var nice_time = moment.unix($task.data('task-time')).format('h:mma [on] MMM D, YYYY');
+		$task.find('.task_time').text(nice_time);
+	});
+}
+
+function refreshTimeagos() {
+	$('.task').each(function(i, element) {
+		var $task = $(element);
+		var nice_time = moment.unix($task.data('task-time')).fromNow();
+		$task.find('.task_timeago').text(nice_time);
+	});
+	
+	$('.message').each(function(i, element) {
+		var $msg = $(element);
+		var nice_time = moment.unix($msg.data('msg-time')).fromNow();
+		$msg.find('.msg_timeago').text(nice_time);
+	});
+}
+
+function scrollBottom(element_id) {
+	var $messages = $(element_id);
 	$messages.scrollTop($messages.height()); // there is no scroll bottom, but this should do
 }

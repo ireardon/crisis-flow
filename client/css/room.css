@@ -77,6 +77,20 @@
 	border-radius: 10px;
 }
 
+.task_detail_priority {
+	color: red;
+	display: inline-block;
+}
+
+span.glyphicon {
+	color: red;
+}
+
+.task_title {
+	font-weight: bold;
+	cursor: pointer;
+}
+
 .message {
 	color: #000E5E;
 }
