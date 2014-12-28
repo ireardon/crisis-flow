@@ -1,4 +1,4 @@
-// this file contains global settings variables
+// this file contains global config variables
 
 // a secret string used to cryptographically sign cookies (this can be anything, just don't expose it)
 var COOKIE_SIGN_SECRET = 'genericsecret';

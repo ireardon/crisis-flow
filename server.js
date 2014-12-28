@@ -15,9 +15,9 @@ var http = require('http');
 var socketIO = require('socket.io');
 var SQLiteStore = require('connect-sqlite3')(expressSession);
 
-var settings = require('./settings');
-var dbops = require('./database_ops');
-var getcookie = require('./getcookie');
+var config = require('./config');
+var dbops = require('./lib/database_ops');
+var getcookie = require('./lib/getcookie');
 
 /*###################################
   #          CONFIGURATION          #
@@ -26,7 +26,7 @@ var getcookie = require('./getcookie');
 var port = process.env.PORT || 8080;
 var app = express();
 
-var sessionStore = new SQLiteStore({ table: settings.SESSION_DB_TABLENAME });
+var sessionStore = new SQLiteStore({ table: config.SESSION_DB_TABLENAME });
 
 var ectEngine = ECT({ watch: true, root: __dirname + '/templates', ext: '.html' });
 
@@ -39,10 +39,10 @@ app.set('view engine', 'html');
 app.set('views', __dirname + '/templates'); // tell Express where to find templates
 app.use(express.static(__dirname));
 
-app.use(cookieParser(settings.COOKIE_SIGN_SECRET));
+app.use(cookieParser(config.COOKIE_SIGN_SECRET));
 app.use(expressSession({
-	name: settings.COOKIE_SESSION_KEY,
-	secret: settings.COOKIE_SIGN_SECRET,
+	name: config.COOKIE_SESSION_KEY,
+	secret: config.COOKIE_SIGN_SECRET,
 	store: sessionStore,
 	saveUninitialized: false,
 	resave: false
@@ -58,7 +58,7 @@ server.listen(port, function() {
   ###################################*/
 
 io.use(function(socket, next) {
-	var sessionId = getcookie.getcookie(socket.request, settings.COOKIE_SESSION_KEY, settings.COOKIE_SIGN_SECRET);
+	var sessionId = getcookie.getcookie(socket.request, config.COOKIE_SESSION_KEY, config.COOKIE_SIGN_SECRET);
 	
 	sessionStore.get(sessionId, function(storeError, session) {
 		if (!session) {
@@ -71,6 +71,19 @@ io.use(function(socket, next) {
 });
 
 var clientDirectory = io.sockets.clientDirectory = {};
+// this bit is super race-conditiony: this is an async call which
+// does not necessarily finish before the server starts listening for stuff
+// basically rests on the assumption that people won't be trying to join 
+// rooms immediately after the server starts up
+dbops.getAllRooms(function (rooms) {
+	for (var i=0; i<rooms.length; i++) {
+		var room = rooms[i].room_id;
+		if (!clientDirectory[room]) { // woo more race conditions!
+			clientDirectory[room] = [];
+		}
+	}
+});
+
 io.sockets.clients = function(roomID) {
 	if (roomID) {
 		return clientDirectory[roomID];
@@ -198,7 +211,7 @@ app.get('/rooms/:roomID/messages.json', function(request, response) {
 	var roomID = request.params.roomID;
 
 	// fetch all of the messages for this room
-	dbops.getMessagesForRoom(roomID, settings.DEFAULT_MESSAGE_COUNT, function(messagesList) {
+	dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(messagesList) {
 		// encode the messages object as JSON and send it back
 		response.json(messagesList);
 	});
@@ -326,7 +339,7 @@ app.get('/rooms/:roomID', function(request, response) {
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
 	dbops.getRoomName(roomID, function(roomName) {
-		dbops.getMessagesForRoom(roomID, settings.DEFAULT_MESSAGE_COUNT, function(message_list) {
+		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(message_list) {
 			dbops.getTasksForRoom(roomID, function(task_list) {
 				var context = {
 					'room_id': roomID,
@@ -458,7 +471,7 @@ function getSaltBits() {
 	var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
 
 	var result = '';
-	for (var i = 0; i < settings.SALT_LENGTH; i++)
+	for (var i = 0; i < config.SALT_LENGTH; i++)
 		result += chars.charAt(Math.floor(Math.random() * chars.length));
 
 	return result;
