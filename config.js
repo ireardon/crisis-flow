@@ -7,7 +7,7 @@ var COOKIE_SIGN_SECRET = 'genericsecret';
 var COOKIE_SESSION_KEY = 'crisis_flow_session';
 
 // the any-db identifier for your database backend
-var DATA_ANYDB_CONNECT_ID = 'sqlite3://chatroom.db';
+var DATA_ANYDB_CONNECT_ID = 'sqlite3://data.db';
 
 var SESSION_ANYDB_CONNECT_ID = 'sqlite3://sessions.db';
 

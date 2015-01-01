@@ -18,6 +18,7 @@ var SQLiteStore = require('connect-sqlite3')(expressSession);
 var config = require('./config');
 var dbops = require('./lib/database_ops');
 var getcookie = require('./lib/getcookie');
+var clientdir = require('./lib/ClientDirectory');
 
 /*###################################
   #          CONFIGURATION          #
@@ -70,31 +71,14 @@ io.use(function(socket, next) {
 	});
 });
 
-var clientDirectory = io.sockets.clientDirectory = {};
+var clientDirectory = io.sockets.clientDirectory = new clientdir.ClientDirectory();
 // this bit is super race-conditiony: this is an async call which
 // does not necessarily finish before the server starts listening for stuff
 // basically rests on the assumption that people won't be trying to join 
 // rooms immediately after the server starts up
 dbops.getAllRooms(function (rooms) {
-	for (var i=0; i<rooms.length; i++) {
-		var room = rooms[i].room_id;
-		if (!clientDirectory[room]) { // woo more race conditions!
-			clientDirectory[room] = [];
-		}
-	}
+	clientDirectory.addRooms(rooms);
 });
-
-io.sockets.clients = function(roomID) {
-	if (roomID) {
-		return clientDirectory[roomID];
-	}
-	
-	var clientList = [];
-	for (var room in clientDirectory) {
-		clientList.concat(clientDirectory[list]);
-	}
-	return clientList;
-};
 
 io.sockets.on('connection', function(socket) {
 	console.log('SOCKET connected');
@@ -112,11 +96,7 @@ io.sockets.on('connection', function(socket) {
 		socket.join(roomID);
 		socket.room = roomID;
 		
-		if (clientDirectory[roomID]) {
-			clientDirectory[roomID].push(socket.user);
-		} else {
-			clientDirectory[roomID] = [socket.user];
-		}
+		clientDirectory.addClient(socket.user, socket, roomID, []);
 		
 		console.log(socket.room);
 		console.log(socket.user);
@@ -137,13 +117,7 @@ io.sockets.on('connection', function(socket) {
 	
 	// the clients emits this when they want to send a "whisper" - a private message
 	socket.on('cts_whisper', function(target, message) {
-		var clients = io.sockets.clients(socket.room);
-		var target_sock;
-		for(var i=0; i<clients.length; i++) {
-			if(clients[i].username === target) {
-				target_sock = clients[i];
-			}
-		}
+		var target_sock = clientDirectory.getSocket(target);
 	
 		if(!target_sock) {
 			console.log('ERROR unable to find socket specified as whisper recipient');
@@ -182,16 +156,11 @@ io.sockets.on('connection', function(socket) {
 		// but this is clearly a lie, because it doesn't work
 		// fetch all sockets in a room
 		socket.leave(roomID);
-		var sockIndex = clientDirectory[roomID].indexOf(socket.user);
-		clientDirectory[roomID].splice(sockIndex, 1);
+		clientDirectory.removeClient(socket.user, roomID);
 		
-		var clients = io.sockets.clients(roomID);
-		// pull the nicknames out of the socket objects using array.map(...)
-		var nicknames = clients.map(function(s) {
-			return s.nickname;
-		});
+		var remainingUsers = clientDirectory.getClientsByRoom(roomID);
 		
-		io.sockets.in(roomID).emit('membership_change', nicknames);
+		io.sockets.in(roomID).emit('membership_change', remainingUsers);
 	});
 });
 
@@ -284,7 +253,10 @@ app.post('/signin', function(request, response) {
 	
 	var username = request.body.username;
 
+	console.log(username);
+	
 	dbops.getUser(username, function(user) {
+		console.log('got user');
 		if(!user) {
 			response.json({ 'error': 'No such user' });
 			return;

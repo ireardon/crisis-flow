@@ -16,19 +16,28 @@ CREATE TABLE users (
 );
 
 CREATE TABLE rooms (
-	id TEXT PRIMARY KEY,
+	id INTEGER PRIMARY KEY,
 	name TEXT
+);
+
+CREATE TABLE channels (
+	id INTEGER PRIMARY KEY,
+	room TEXT,
+	name TEXT,
+	FOREIGN KEY(room) REFERENCES rooms(id)
 );
 
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY,
     room TEXT,
     author TEXT,
+	channel INTEGER,
 	reply INTEGER, -- to indicate that this is a top-level message, we use a negative number
     content TEXT,
     time INTEGER,
 	FOREIGN KEY(room) REFERENCES rooms(id),
 	FOREIGN KEY(author) REFERENCES users(username),
+	FOREIGN KEY(channel) REFERENCES channels(id),
 	FOREIGN KEY(reply) REFERENCES messages(id)
 );
 
@@ -44,3 +53,19 @@ CREATE TABLE tasks (
 	FOREIGN KEY(room) REFERENCES rooms(id),
 	FOREIGN KEY(author) REFERENCES users(username)
 );
+
+CREATE TABLE tags (
+	id INTEGER PRIMARY KEY,
+	name TEXT,
+	description TEXT
+);
+
+CREATE TABLE task_tags (
+	id INTEGER PRIMARY KEY,
+	task INTEGER,
+	tag INTEGER,
+	FOREIGN KEY(task) REFERENCES tasks(id),
+	FOREIGN KEY(tag) REFERENCES tags(id)
+);
+
+-- an empty line at the end of the file is necessary!
