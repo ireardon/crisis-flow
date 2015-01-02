@@ -76,8 +76,12 @@ var clientDirectory = io.sockets.clientDirectory = new clientdir.ClientDirectory
 // does not necessarily finish before the server starts listening for stuff
 // basically rests on the assumption that people won't be trying to join 
 // rooms immediately after the server starts up
-dbops.getAllRooms(function (rooms) {
-	clientDirectory.addRooms(rooms);
+dbops.getAllRooms(function (rows) {
+	var room_ids = [];
+	rows.forEach(function(row) {
+		room_ids.push(row.id);
+	});
+	clientDirectory.addRooms(room_ids);
 });
 
 io.sockets.on('connection', function(socket) {
@@ -213,9 +217,9 @@ app.post('/create_room', function(request, response) {
 	}
 	
 	var roomName = request.body.room_name;
-	var roomID = dbops.createRoom(roomName);
-	
-	response.json(roomID);
+	dbops.createRoom(roomName, function(roomID) {
+		response.json(roomID);
+	});
 });
 
 // create a new task
