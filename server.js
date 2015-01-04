@@ -77,9 +77,8 @@ var clientDirectory = io.sockets.clientDirectory = new clientdir.ClientDirectory
 // basically rests on the assumption that people won't be trying to join 
 // rooms immediately after the server starts up
 dbops.getAllRooms(function (rows) {
-	var room_ids = [];
-	rows.forEach(function(row) {
-		room_ids.push(row.id);
+	var room_ids = rows.map(function(row) {
+		return row.id;
 	});
 	clientDirectory.addRooms(room_ids);
 });
@@ -96,16 +95,16 @@ io.sockets.on('connection', function(socket) {
 	socket.user = socket.session.user.username;
 	
 	socket.on('join', function(roomID) {
-		console.log('ROOM JOINED');
+		console.error('ROOM JOINED');
 		socket.join(roomID);
 		socket.room = roomID;
 		
 		clientDirectory.addClient(socket.user, socket, roomID, []);
 		
-		console.log(socket.room);
-		console.log(socket.user);
+		console.error(socket.room);
+		console.error(socket.user);
 		
-		broadcastMembership(socket);
+		setTimeout(function() { broadcastMembership(socket); }, 2000);
 	});
 
 	// the client emits this when they want to send a message
@@ -218,7 +217,38 @@ app.post('/create_room', function(request, response) {
 	
 	var roomName = request.body.room_name;
 	dbops.createRoom(roomName, function(roomID) {
+		clientDirectory.addRooms([roomID]);
 		response.json(roomID);
+	});
+});
+
+// delete a room
+app.post('/delete_room', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+	
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
+	var roomID = request.body.room_id;
+	clientDirectory.removeRooms([roomID]);
+	dbops.deleteRoom(roomID, function() {
+		response.json(roomID);
+	});
+});
+
+// rename a room
+app.post('/rename_room', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+	
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
+	dbops.renameRoom(request.body.room_id, request.body.new_name, function() {
+		response.json(request.body.room_id);
 	});
 });
 
@@ -286,17 +316,18 @@ app.post('/signup', function(request, response) {
 	
 	var role_access = getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
 	console.log("Role access: " + role_access);
+	
 	if(!role_access) {
 		response.json({ 'error': 'Access code is incorrect' });
+	} else {
+		dbops.createUser(request.body.username, request.body.hashed_password, role_access, function(error) {
+			if(error) {
+				response.json({ 'error': 'Username is already in use' });
+			} else {
+				response.json({ 'success': true });
+			}
+		});
 	}
-	
-	dbops.createUser(request.body.username, request.body.hashed_password, role_access, function(username) {
-		if(username !== request.body.username) {
-			response.json({ 'error': 'Username is already in use' });
-		} else {
-			response.json({ 'success': true });
-		}
-	});
 });
 
 /*###################################
@@ -346,6 +377,22 @@ app.get('/add_task/:roomID', function(request, response) {
 	response.render('add_task.html', context);
 });
 
+app.get('/manage_rooms', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+	
+	if(!sessionValid(request.session)) {
+		response.redirect('/signin');
+		return;
+	}
+	
+	dbops.getAllRooms(function(roomsList) {
+		var context = {
+			'room_list': roomsList
+		};
+		response.render('manage_rooms.html', context);
+	});
+});
+
 // get the room index page
 app.get('/index', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
@@ -357,6 +404,11 @@ app.get('/index', function(request, response) {
 	}
 	
 	dbops.getAllRooms(function(roomsList) {
+		roomsList.forEach(function(room) {
+			var members = clientDirectory.getClientsByRoom(room.id);
+			room.num_members = members.length;
+		});
+	
 		var context = {
 			'room_list': roomsList
 		};
@@ -455,13 +507,13 @@ function getSaltBits() {
 
 function broadcastMembership(socket) {
 	// fetch all sockets in a room
-	var clients = io.sockets.clients(socket.room);
+	var clients = clientDirectory.getClientsByRoom(socket.room);
 
-	// pull the nicknames out of the socket objects using array.map(...)
-	var nicknames = clients.map(function(s){
-		return s.nickname;
+	// pull the userIDs out of the socket objects using array.map(...)
+	var usernames = clients.map(function(c) {
+		return c.username;
 	});
 	
-	socket.emit('membership_change', nicknames); // the socket that caused this wants the updated list too
-	socket.broadcast.to(socket.room).emit('membership_change', nicknames); // everybody else
+	//socket.emit('membership_change', usernames); // the socket that caused this wants the updated list too
+	//socket.broadcast.to(socket.room).emit('membership_change', usernames); // everybody else
 }

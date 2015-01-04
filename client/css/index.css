@@ -1,23 +1,6 @@
-#new_room_form {
-	width: 65%;
-	margin: 40px auto;
-}
-
-form label {
-	font-weight: bold;
-	font-size: 14pt;
-	color: black;
-}
-
 #rooms_list {
 	width: 100%;
 	margin: auto;
-}
-
-#new_room_wrapper {
-	text-align: center;
-	margin: auto;
-	overflow: hidden;
 }
 
 .room {

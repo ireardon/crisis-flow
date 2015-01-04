@@ -22,20 +22,20 @@ CREATE TABLE rooms (
 
 CREATE TABLE channels (
 	id INTEGER PRIMARY KEY,
-	room TEXT,
+	room INTEGER,
 	name TEXT,
-	FOREIGN KEY(room) REFERENCES rooms(id)
+	FOREIGN KEY(room) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY,
-    room TEXT,
+    room INTEGER,
     author TEXT,
 	channel INTEGER,
 	reply INTEGER, -- to indicate that this is a top-level message, we use a negative number
     content TEXT,
     time INTEGER,
-	FOREIGN KEY(room) REFERENCES rooms(id),
+	FOREIGN KEY(room) REFERENCES rooms(id) ON DELETE CASCADE,
 	FOREIGN KEY(author) REFERENCES users(username),
 	FOREIGN KEY(channel) REFERENCES channels(id),
 	FOREIGN KEY(reply) REFERENCES messages(id)
@@ -43,14 +43,14 @@ CREATE TABLE messages (
 
 CREATE TABLE tasks (
 	id INTEGER PRIMARY KEY,
-	room TEXT,
+	room INTEGER,
 	author TEXT,
 	title TEXT,
 	completed BOOLEAN,
 	high_priority BOOLEAN,
 	content TEXT,
 	time INTEGER,
-	FOREIGN KEY(room) REFERENCES rooms(id),
+	FOREIGN KEY(room) REFERENCES rooms(id) ON DELETE CASCADE,
 	FOREIGN KEY(author) REFERENCES users(username)
 );
 

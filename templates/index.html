@@ -1,34 +1,22 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<script type="text/javascript" src="http://code.jquery.com/jquery.js" charset="utf-8"></script>
+		<% include "common_includes.html" %>
 		<script type="text/javascript" src="/client/js/index.js" charset="utf-8"></script>
-		<script type="text/javascript" src="/bootstrap/js/bootstrap.min.js" charset="utf-8"></script>
-		<link href='http://fonts.googleapis.com/css?family=Marmelad' rel='stylesheet' type='text/css'></link>
-		<link rel="stylesheet" type="text/css" href="/bootstrap/css/bootstrap.min.css"></link>
-		<link rel="stylesheet" type="text/css" href="/client/css/base.css"></link>
 		<link rel="stylesheet" type="text/css" href="/client/css/index.css"></link>
 		<title id="page_title">Rooms | Crisis Flow</title>
 	</head>
 	<body>
 		<% include "navbar.html" %>
 		<div id="body_content">
-			<h2>Rooms Index</h2>
-			<div id="new_room_box">
-				<div id="new_room_wrapper">
-					<form id="new_room_form" class="form-inline">
-						<label for="new_room_name">Enter a name for a new room:</label>
-						<input id="new_room_name" type="text"/>
-						<input id="create_new_room" class="btn btn-primary" type="submit" value="Create"></input>
-					</form>
-				</div>
-			</div>
+			<h2>Rooms</h2>
+			<a href="/manage_rooms">Create a new room or manage existing rooms.</a>
 			<div id="rooms_list">
 				<% for room in @room_list : %>
-					<div class="room" data_room_id="<%- room.room_id %>">
-						<a href="/rooms/<%- room.room_id %>">
-							<h4><%= room.room_name %></h4>
-							<p>Last post: <%- room.last_post_time %></p>
+					<div class="room" data_room_id="<%- room.id %>">
+						<a href="/rooms/<%- room.id %>">
+							<h4><%= room.name %></h4>
+							<p>Users in room: <%- room.num_members %></p>
 						</a>
 					</div>
 				<% end %>
