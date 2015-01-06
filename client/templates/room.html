@@ -4,8 +4,8 @@
 		<% include "common_includes.html" %>
 		<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js" charset="utf-8"></script>
 		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.6.0/moment.min.js" charset="utf-8"></script>		
-		<script type="text/javascript" src="/client/js/room.js" charset="utf-8"></script>
-		<link rel="stylesheet" type="text/css" href="/client/css/room.css"></link>
+		<script type="text/javascript" src="/js/room.js" charset="utf-8"></script>
+		<link rel="stylesheet" type="text/css" href="/css/room.css"></link>
 		<title id="page_title"><%= @room_name %> | Chatroom</title>
 		
 		<meta name="room_id" content="<%- @room_id %>"/>
@@ -34,7 +34,15 @@
 							<p class="task_detail_profile">Submitted by <%= task.author %> (<span class="task_time"></span>)</p>
 						</div>
 						<div class="modal-body">
-							<p><%= task.content %></p>
+							<div class="task_content">
+								<p><%= task.content %></p>
+							</div>
+							<div class="task_attachments">
+								<h5>Attachments</h5>
+								<% for attachment in task.attachments : %>
+									<a href="<%- @upload_path %><%- attachment.internal_filename %>"><%- attachment.user_filename %></a>
+								<% end %>
+							</div>
 						</div>
 						<div class="modal-footer">
 							<button type="button" class="task_completed btn btn-primary" data-dismiss="modal"

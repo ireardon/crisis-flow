@@ -24,6 +24,7 @@ CREATE TABLE channels (
 	id INTEGER PRIMARY KEY,
 	room INTEGER,
 	name TEXT,
+	color_index INTEGER,
 	FOREIGN KEY(room) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
@@ -46,7 +47,7 @@ CREATE TABLE tasks (
 	room INTEGER,
 	author TEXT,
 	title TEXT,
-	completed BOOLEAN,
+	status INTEGER,
 	high_priority BOOLEAN,
 	content TEXT,
 	time INTEGER,
@@ -64,8 +65,22 @@ CREATE TABLE task_tags (
 	id INTEGER PRIMARY KEY,
 	task INTEGER,
 	tag INTEGER,
-	FOREIGN KEY(task) REFERENCES tasks(id),
-	FOREIGN KEY(tag) REFERENCES tags(id)
+	FOREIGN KEY(task) REFERENCES tasks(id) ON DELETE CASCADE,
+	FOREIGN KEY(tag) REFERENCES tags(id) ON DELETE CASCADE
+);
+
+CREATE TABLE attachments (
+	id INTEGER PRIMARY KEY,
+	user_filename TEXT,
+	internal_filename TEXT
+);
+
+CREATE TABLE task_attachments (
+	id INTEGER PRIMARY KEY,
+	task INTEGER,
+	attachment INTEGER,
+	FOREIGN KEY(task) REFERENCES tasks(id) ON DELETE CASCADE,
+	FOREIGN KEY(attachment) REFERENCES attachments(id) ON DELETE CASCADE
 );
 
 -- an empty line at the end of the file is necessary!

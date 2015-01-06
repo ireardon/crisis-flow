@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<% include "common_includes.html" %>
+		<script type="text/javascript" src="/js/add_task.js" charset="utf-8"></script>
+		<link rel="stylesheet" type="text/css" href="/css/room.css"></link>
+		<title id="page_title">Add directive | Crisis Flow</title>
+		
+		<meta name="room_id" content="<%- @room_id %>"/>
+	</head>
+	<body>
+		<% include "navbar.html" %>
+		<div id="body_content">
+			<h2>Add directive</h2>
+			<form id="add_task_form"  class="form" action="/add_task/<%- @room_id %>" method="post" enctype="multipart/form-data">
+				<input id="task_title" name="title" type="text" form="add_task_form" class="form-control" placeholder="Title"/>
+				<textarea id="task_content" name="content" form="add_task_form" class="form-control" placeholder="Enter the contents of the directive here..."></textarea>
+				<input id="high_priority_input" name="high_priority" form="add_task_form" value="false" type="hidden"/>
+				<div id="upload_files" data-num-files="1">
+					<p>Attach any files pertaining to the directive here:</p>
+					<input type="file" name="file1" class="form-control" id="file1" form="add_task_form"></input>
+				</div>
+				<button id="additional_files_button" type="button" class="btn btn-default">Add more files...</button>
+				<button id="high_priority_button" type="button" class="btn btn-default">Mark as high priority</button>
+				<button id="submit_task" class="btn btn-primary" type="submit">Submit directive</button>
+				<a href="/rooms/<%- @room_id %>" id="never_mind" class="btn btn-default" role="button" type="submit">Never mind</a>
+			</form>
+		</div>
+	</body>
+</html>

@@ -2,7 +2,9 @@
   #            REQUIRES             #
   ###################################*/
 
+var path = require('path');
 var bodyParser = require('body-parser');
+var multer = require('multer');
 var connect = require('connect');
 var engines = require('consolidate');
 var cookieParser = require('cookie-parser');
@@ -29,7 +31,7 @@ var app = express();
 
 var sessionStore = new SQLiteStore({ table: config.SESSION_DB_TABLENAME });
 
-var ectEngine = ECT({ watch: true, root: __dirname + '/templates', ext: '.html' });
+var ectEngine = ECT({ watch: true, root: path.join(__dirname, 'client', 'templates'), ext: '.html' });
 
 var server = http.createServer(app);
 var io = socketIO(server);
@@ -37,8 +39,8 @@ var io = socketIO(server);
 app.engine('html', ectEngine.render); // tell Express to run .html files through ECT template parser
 app.set('view engine', 'html');
 
-app.set('views', __dirname + '/templates'); // tell Express where to find templates
-app.use(express.static(__dirname));
+app.set('views', path.join(__dirname, 'client', 'templates')); // tell Express where to find templates
+app.use(express.static(path.join(__dirname, 'client')));
 
 app.use(cookieParser(config.COOKIE_SIGN_SECRET));
 app.use(expressSession({
@@ -48,7 +50,10 @@ app.use(expressSession({
 	saveUninitialized: false,
 	resave: false
 }));
-app.use(bodyParser.urlencoded({ extended: true })); // definitely use this feature
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
+app.use(multer({ dest: './uploads/'}));
 
 server.listen(port, function() {
 	console.log("LISTENING on port 8080");
@@ -133,7 +138,7 @@ io.sockets.on('connection', function(socket) {
 	// the client emits this whenever the user marks a task as completed
 	socket.on('cts_task_completed', function(task_id) {
 		console.log('RECEIVED task completed');
-		dbops.completeTask(task_id);
+		dbops.updateTaskStatus(task_id, config.STATUS_COMPLETED);
 		socket.broadcast.to(socket.room).emit('stc_task_completed', task_id);
 	});
 	
@@ -261,24 +266,31 @@ app.post('/add_task/:roomID', function(request, response) {
 		return;
 	}
 	
+	console.log(request.files);
+	console.log(request.body);
 	var room_id = request.params.roomID;
 	var author = request.session.user.username;
-	var high_priority = JSON.parse(request.body.high_priority);
+	var highPriority = Boolean(request.body.high_priority);
 	
-	var submit_time = dbops.createTask(room_id, author, request.body.title, 
-		false, high_priority, request.body.content);
+	var files = Object.keys(request.files).map(function(key) {
+		return request.files[key];
+	});
 	
-	var task_data = {
-		'task_title': request.body.title, 
-		'task_author': author,
-		'task_high_priority': high_priority,
-		'task_content': request.body.content,
-		'task_time': submit_time
-	};
-	
-	io.sockets.in(room_id).emit('stc_add_task', task_data);
-	
-	response.json({ 'success': true });
+	dbops.createTask(room_id, author, request.body.title, highPriority, request.body.content, function(taskID, submitTime) {
+		attachFilesToTask(taskID, files, function() {
+			var taskData = {
+				'task_title': request.body.title, 
+				'task_author': author,
+				'task_high_priority': highPriority,
+				'task_content': request.body.content,
+				'task_time': submitTime
+			};
+			
+			io.sockets.in(room_id).emit('stc_add_task', taskData);
+			
+			response.redirect('/rooms/' + room_id);
+		});
+	});
 });
 
 // signin with given username and password
@@ -347,15 +359,18 @@ app.get('/rooms/:roomID', function(request, response) {
 	var username = request.session.user.username;
 	dbops.getRoomName(roomID, function(roomName) {
 		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(message_list) {
-			dbops.getTasksForRoom(roomID, function(task_list) {
+			dbops.getOpenTasksForRoom(roomID, function(task_list) {
 				var context = {
 					'room_id': roomID,
 					'room_name': roomName,
 					'username': username,
 					'message_list': message_list,
-					'task_list': task_list
+					'task_list': task_list,
+					'upload_path': config.UPLOAD_PATH
 				};
 				
+				
+				console.log(context);
 				response.render('room.html', context);
 			});
 		});
@@ -493,6 +508,20 @@ function getAccessRole(access_code_salted_hash, client_salt, server_salt) {
 	}
 	
 	return 0;
+}
+
+function attachFilesToTask(task, files, callback) {
+	if(files.length === 0) {
+		callback();
+	} else {
+		var file = files.pop();
+		
+		dbops.createAttachment(file, function(attachmentID) {
+			dbops.createTaskAttachment(task, attachmentID, function() {
+				attachFilesToTask(task, files, callback);
+			});
+		});
+	}
 }
 
 function getSaltBits() {

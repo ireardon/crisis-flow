@@ -13,11 +13,15 @@ var SESSION_DB_FILENAME = 'sessions.db';
 
 var SESSION_DB_TABLENAME = 'sessions';
 
+var UPLOAD_PATH = '/uploads/';
+
 // the length of the salt string used in hashing the user's password etc.
 var SALT_LENGTH = 20;
 
-// the length of unique room identifier strings
-var ROOM_ID_LENGTH = 6;
+var STATUS_SUBMITTED = 0;
+var STATUS_RECEIVED = 1;
+var STATUS_IN_PROGRESS = 2;
+var STATUS_COMPLETED = 3;
 
 // the default number of most recent messages to display in a room
 // if the user elects to view the message archive for a room, all messages are displayed
@@ -29,7 +33,11 @@ module.exports = {
 	'DATA_DB_FILENAME': DATA_DB_FILENAME,
 	'SESSION_DB_FILENAME': SESSION_DB_FILENAME,
 	'SESSION_DB_TABLENAME': SESSION_DB_TABLENAME,
+	'UPLOAD_PATH': UPLOAD_PATH,
 	'SALT_LENGTH': SALT_LENGTH,
-	'ROOM_ID_LENGTH': ROOM_ID_LENGTH,
-	'DEFAULT_MESSAGE_COUNT': DEFAULT_MESSAGE_COUNT
+	'DEFAULT_MESSAGE_COUNT': DEFAULT_MESSAGE_COUNT,
+	'STATUS_SUBMITTED': STATUS_SUBMITTED,
+	'STATUS_RECEIVED': STATUS_RECEIVED,
+	'STATUS_IN_PROGRESS': STATUS_IN_PROGRESS,
+	'STATUS_COMPLETED': STATUS_COMPLETED
 };
