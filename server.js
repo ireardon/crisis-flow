@@ -2,18 +2,20 @@
   #            REQUIRES             #
   ###################################*/
 
-var path = require('path');
 var bodyParser = require('body-parser');
-var multer = require('multer');
 var connect = require('connect');
 var engines = require('consolidate');
-var cookieParser = require('cookie-parser');
 var cookie = require('cookie');
+var cookieParser = require('cookie-parser');
 var crypto = require('crypto');
 var ECT = require('ect');
 var express = require('express');
 var expressSession = require('express-session');
+var fs = require('fs');
 var http = require('http');
+var mime = require('mime');
+var multer = require('multer');
+var path = require('path');
 var socketIO = require('socket.io');
 var SQLiteStore = require('connect-sqlite3')(expressSession);
 
@@ -346,6 +348,26 @@ app.post('/signup', function(request, response) {
   #          PAGE HANDLERS          #
   ###################################*/
 
+app.get('/uploads/:filepath', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+
+	if(!sessionValid(request.session)) {
+		response.redirect('/signin');
+		return;
+	}
+	
+	var filename = path.basename(request.params.filepath);
+	var mimetype = mime.lookup(filename);
+	
+	dbops.getAttachmentByFilename(filename, function(userFilename) {
+		response.setHeader('Content-disposition', 'attachment; filename=' + userFilename);
+		response.setHeader('Content-type', mimetype);
+
+		var filestream = fs.createReadStream(path.join(__dirname, request.originalUrl));
+		filestream.pipe(response);
+	});
+});
+  
 // get the page for the given room
 app.get('/rooms/:roomID', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);

@@ -24,7 +24,7 @@ CREATE TABLE channels (
 	id INTEGER PRIMARY KEY,
 	room INTEGER,
 	name TEXT,
-	color_index INTEGER,
+	color_index INTEGER, -- channels are room-specific, so we cannot simply use the id
 	FOREIGN KEY(room) REFERENCES rooms(id) ON DELETE CASCADE
 );
 
