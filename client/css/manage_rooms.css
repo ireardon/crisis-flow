@@ -20,11 +20,11 @@ form label {
 	overflow: hidden;
 }
 
-#delete_confirm_dialog .modal-header {
+.no_divider_dialog .modal-header {
 	border-bottom: 0;
 }
 
-#delete_confirm_dialog .modal-footer {
+.no_divider_dialog .modal-footer {
 	border-top: 0;
 	margin-top: 0;
 }

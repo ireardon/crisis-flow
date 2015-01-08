@@ -117,12 +117,12 @@ io.sockets.on('connection', function(socket) {
 	// the client emits this when they want to send a message
 	socket.on('cts_message', function(data) {
 		console.log('MESSAGE RECEIVED');
-		var submit_time = dbops.createMessage(socket.room, socket.user, data.msg_reply_to, data.msg_content);
-		
-		data.msg_author = socket.user;
-		data.msg_time = submit_time;
-		
-		socket.broadcast.to(socket.room).emit('stc_message', data); //emit to 'room' except this socket
+		dbops.createMessage(socket.room, socket.user, data.msg_reply_to, data.msg_content, function(submitTime) {
+			data.msg_author = socket.user;
+			data.msg_time = submitTime;
+			
+			socket.broadcast.to(socket.room).emit('stc_message', data); //emit to 'room' except this socket
+		});
 	});
 	
 	// the clients emits this when they want to send a "whisper" - a private message
@@ -209,8 +209,9 @@ app.post('/rooms/:roomID/send_message', function(request, response) {
 	var username = request.session.user.username;
 	var message = request.body.message;
 	
-	var submit_time = dbops.createMessage(roomID, username, message);
-	response.json(submit_time);
+	dbops.createMessage(roomID, username, message, function(submitTime) {
+		response.json(submitTime);
+	});
 });
 
 // create a new room
@@ -241,6 +242,7 @@ app.post('/delete_room', function(request, response) {
 	var roomID = request.body.room_id;
 	clientDirectory.removeRooms([roomID]);
 	dbops.deleteRoom(roomID, function() {
+		clientDirectory.removeRooms([roomID]);
 		response.json(roomID);
 	});
 });
@@ -256,6 +258,52 @@ app.post('/rename_room', function(request, response) {
 	
 	dbops.renameRoom(request.body.room_id, request.body.new_name, function() {
 		response.json(request.body.room_id);
+	});
+});
+
+app.post('/create_channel', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+	
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
+	var roomID = request.body.room_id;
+	var channelName = request.body.channel_name;
+	dbops.createChannel(roomID, channelName, function(channelID) {
+		clientDirectory.getRoom(roomID).addChannels([channelID]);
+		response.json(channelID);
+	});
+});
+
+app.post('/delete_channel', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+	
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
+	var channelID = request.body.channel_id;
+	dbops.getRoomOfChannel(channelID, function(roomID) {
+		dbops.deleteChannel(channelID, function() {
+			clientDirectory.getRoom(roomID).removeChannels([channelID]);
+			response.json(roomID);
+		});
+	});
+});
+
+app.post('/rename_channel', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+	
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
+	dbops.renameChannel(request.body.channel_id, request.body.channel_name, function() {
+		response.json(request.body.channel_id);
 	});
 });
 
@@ -423,6 +471,8 @@ app.get('/manage_rooms', function(request, response) {
 	}
 	
 	dbops.getAllRooms(function(roomsList) {
+		console.log(roomsList);
+	
 		var context = {
 			'room_list': roomsList
 		};

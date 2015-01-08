@@ -8,8 +8,60 @@
 	</head>
 	<body>
 		<% include "navbar.html" %>
-		<!-- modal dialog containing delete room confirmation (starts hidden) -->
-		<div id="delete_room_dialog" class="task_detail modal fade" role="dialog" aria-hidden="true">
+		<div id="body_content">
+			<h2>Manage Rooms</h2>
+			<div id="new_room_box">
+				<div id="new_room_wrapper">
+					<form id="new_room_form" class="form-inline">
+						<label for="new_room_name">Enter a name for a new room:</label>
+						<input id="new_room_name" class="form-control" type="text"/>
+						<input id="create_new_room" class="btn btn-primary" type="submit" value="Create"></input>
+					</form>
+				</div>
+			</div>
+			<div id="rooms_list">
+				<% for room in @room_list : %>
+					<div class="room">
+						<span class="room_name">
+							<a href="/rooms/<%- room.id %>"><%= room.name %></a>
+						</span>
+						<button id="rename_room_<%- room.id %>" data-room-id="<%- room.id %>" 
+						class="rename_room btn btn-default" data-toggle="modal" data-target="#rename_room_dialog">
+							Rename
+						</button>
+						<button id="delete_room_<%- room.id %>" data-room-id="<%- room.id %>" 
+						class="delete_room btn btn-danger" data-toggle="modal" data-target="#delete_room_dialog">
+							Delete
+						</button>
+						<button class="expand_channels btn btn-info">Edit Channels</button>
+						<div class="channels_list" style="display: none;">
+							<% for channel in room.channels : %>
+								<div class="channel">
+									<span class="<%- channel.color_index %>"></span>
+									<span><%= channel.name %></span>
+									<button id="rename_channel_<%- channel.id %>" data-channel-id="<%- channel.id %>" data-room-id="<%- room.id %>" 
+									class="rename_channel btn btn-default" data-toggle="modal" data-target="#rename_channel_dialog">
+										Rename
+									</button>
+									<button id="delete_channel_<%- channel.id %>" data-channel-id="<%- channel.id %>" data-room-id="<%- room.id %>" 
+									class="delete_channel btn btn-danger" data-toggle="modal" data-target="#delete_channel_dialog">
+										Delete
+									</button>
+								</div>
+							<% end %>
+							<button id="add_channel_<%- room.id %>" data-room-id="<%- room.id %>" class="add_channel btn btn-primary" 
+							data-toggle="modal" data-target="#add_channel_dialog">
+								Add Channel
+							</button>
+						</div>
+					</div>
+				<% end %>
+			</div>
+		</div>
+		
+		<!-- Below are all modal dialogs (which start hidden) -->
+		<!-- DELETE ROOM DIALOG -->
+		<div id="delete_room_dialog" class="no_divider_dialog modal fade" role="dialog" aria-hidden="true">
 			<div class="modal-dialog">
 				<div class="modal-content">
 					<div class="modal-header">
@@ -24,8 +76,8 @@
 			</div>
 		</div>
 		
-		<!-- modal dialog containing rename room form (starts hidden) -->
-		<div id="rename_room_dialog" class="task_detail modal fade" role="dialog" aria-hidden="true">
+		<!-- RENAME ROOM DIALOG -->
+		<div id="rename_room_dialog" class="no_divider_dialog modal fade" role="dialog" aria-hidden="true">
 			<div class="modal-dialog">
 				<div class="modal-content">
 					<div class="modal-header">
@@ -33,10 +85,8 @@
 						<h4 class="modal-title">Rename room</h4>
 					</div>
 					<div class="modal-body">
-						<form id="rename_room_form" class="form-inline">
-							<label for="rename_room_name">New name:</label>
-							<input id="rename_room_name" type="text"></input>
-						</form>
+						<label for="rename_room_name">New name:</label>
+						<input id="rename_room_name" class="form-control" type="text"></input>
 					</div>
 					<div class="modal-footer">
 						<button id="confirm_room_rename" type="button" class="btn btn-primary">Confirm</button>
@@ -46,31 +96,59 @@
 			</div>
 		</div>
 		
-		<div id="body_content">
-			<h2>Manage Rooms</h2>
-			<div id="new_room_box">
-				<div id="new_room_wrapper">
-					<form id="new_room_form" class="form-inline">
-						<label for="new_room_name">Enter a name for a new room:</label>
-						<input id="new_room_name" type="text"/>
-						<input id="create_new_room" class="btn btn-primary" type="submit" value="Create"></input>
-					</form>
+		<!-- ADD CHANNEL DIALOG -->
+		<div id="add_channel_dialog" class="no_divider_dialog modal fade" role="dialog" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+						<h4 class="modal-title">Add channel</h4>
+					</div>
+					<div class="modal-body">
+						<label for="new_channel_name">Name:</label>
+						<input id="new_channel_name" class="form-control" type="text"></input>
+					</div>
+					<div class="modal-footer">
+						<button id="create_new_channel" type="button" class="btn btn-primary">Create</button>
+						<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					</div>
 				</div>
 			</div>
-			<div id="rooms_list">
-				<% for room in @room_list : %>
-					<div class="room">
-						<span class="room_name">
-							<a href="/rooms/<%- room.id %>"><%= room.name %></a>
-						</span>
-						<input id="rename_room_<%- room.id %>" data-room-id="<%- room.id %>" class="rename_room btn btn-default" type="submit" value="Rename"
-							data-toggle="modal" data-target="#rename_room_dialog">
-						</input>
-						<input id="delete_room_<%- room.id %>" data-room-id="<%- room.id %>" class="delete_room btn btn-danger" type="button" value="Delete" 
-							data-toggle="modal" data-target="#delete_room_dialog">
-						</input>
+		</div>
+		
+		<!-- DELETE CHANNEL DIALOG -->
+		<div id="delete_channel_dialog" class="no_divider_dialog modal fade" role="dialog" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+						<h4 class="modal-title">Are you sure you want to delete this channel?</h4>
 					</div>
-				<% end %>
+					<div class="modal-footer">
+						<button id="confirm_channel_delete" type="button" class="btn btn-danger">Confirm</button>
+						<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		
+		<!-- RENAME CHANNEL DIALOG -->
+		<div id="rename_channel_dialog" class="no_divider_dialog modal fade" role="dialog" aria-hidden="true">
+			<div class="modal-dialog">
+				<div class="modal-content">
+					<div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+						<h4 class="modal-title">Rename channel</h4>
+					</div>
+					<div class="modal-body">
+						<label for="rename_channel_name">New name:</label>
+						<input id="rename_channel_name" class="form-control" type="text"></input>
+					</div>
+					<div class="modal-footer">
+						<button id="confirm_channel_rename" type="button" class="btn btn-primary">Confirm</button>
+						<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+					</div>
+				</div>
 			</div>
 		</div>
 	</body>
