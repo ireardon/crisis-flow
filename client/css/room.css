@@ -110,6 +110,8 @@ span.glyphicon {
 
 #input_message {
 	width: 85%;
+	resize: none;
+	overflow: auto;
 }
 
 #send_message {

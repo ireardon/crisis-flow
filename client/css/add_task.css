@@ -1,0 +1,49 @@
+.row_container {
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 20px;
+	max-width: 50%;
+}
+
+.file_input {
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 5px;
+	max-width: 300px;
+}
+
+#task_title {
+	max-width: 500px;
+	display: inline-block;
+	margin-right: 10px;
+}
+
+#high_priority_button {
+	display: inline-block;
+}
+
+#task_content {
+	max-width: 100%;
+	height: 200px;
+	max-height: 300px;
+	margin: auto;
+}
+
+#form_tagging {
+	display: inline-block;
+	margin-right: 105px;
+	vertical-align: top;
+}
+
+#task_tags {
+	width: 250px;
+}
+
+#form_file_upload {
+	display: inline-block;
+}
+
+#additional_files_button {
+	margin-top: 5px;
+	margin-left: 175px;
+}

@@ -9,6 +9,18 @@ var typing_interval_id = -1;
 var time_refresh_interval = -1;
 
 $(document).ready(function() {
+	$('#input_message').autosize();
+	$('#input_message').popover({
+		html: true,
+		placement: 'left',
+		trigger: 'manual',
+		content: function() {
+			var replyTargetAuthor = $(this).data('reply-target-author');
+			var htmlString = '<span>Replying to ' + replyTargetAuthor + '</span>' + 
+							'<button id="close_reply_popover" onclick="destroyReply();" type="button" class="close">&times;</button>';
+			return htmlString;
+		}
+	});
 	glob_roomID = document.querySelector('meta[name=room_id]').content;
 	glob_username = document.querySelector('meta[name=username]').content;
 	socket.emit('join', glob_roomID, glob_username);
@@ -48,13 +60,9 @@ $(document).ready(function() {
 		}
 	});
 	
-	socket.on('stc_message', function(username, message, time) {
-		removeTypingNote(username);
-		displayMessage(username, message, time);
-	});
-	
-	socket.on('stc_whisper', function(username, message, time) {
-		displayMessage(username + ' (whisper to you)', message, time);
+	socket.on('stc_message', function(message) {
+		removeTypingNote(message.author);
+		displayMessage(message.author, message.reply_to, message.content, message.time);
 	});
 	
 	socket.on('stc_typing', function(username) {
@@ -97,14 +105,11 @@ $(document).ready(function() {
 		
 		var $input_message = $('#input_message');
 		
-		if(!$input_message.val())
+		if(!$input_message.val()) {
 			return false;
-		
-		if($input_message.data('whisper-to')) { // whisper
-			sendWhisper();
-		} else { // normal message
-			sendMessage();
 		}
+		
+		sendMessage();
 		
 		resetMessageInput();
 		
@@ -121,9 +126,7 @@ $(document).ready(function() {
 	$('#input_message').keypress(function(e) {
 		if(e.which != 13) {
 			var new_message_content = $('#input_message').val();
-			if(new_message_content[0] !== '@') { // ignore whispers
-				socket.emit('cts_typing');
-			}
+			socket.emit('cts_typing');
 		}
 	});
 	
@@ -158,6 +161,16 @@ $(document).ready(function() {
 		});
 	});
 
+	$('.channel_toggle').on('click', function() {
+		var sockEvent = 'cts_leave_channel';
+		if(this.checked) {
+			sockEvent = 'cts_join_channel';
+		}
+		
+		var channelID = $(this).data('channel-id');
+		socket.emit(sockEvent, channelID);
+	});
+	
 	// user has switched away from current tab
 	$(window).blur(function() {
 		socket.emit('cts_user_idle');
@@ -169,68 +182,50 @@ $(document).ready(function() {
 	});
 });
 
-function sendWhisper(whisper_content) {
-	var tokens = whisper_content.split(' ');
-	var target_name = tokens[0].substring(1);
-	
-	if(target_name === glob_username) {
-		$('#input_message').attr('placeholder', "No, curious cat. You can't whisper to yourself.");
-		$('#input_message').val('');
-		return false;
-	}
-	
-	var valid = false;
-	for(var i=0; i<room_members.length; i++) { // make sure the person we're trying to whisper to is in the room
-		if(room_members[i] === target_name) {
-			valid = true;
-		}
-	}
-	
-	if(!valid) {
-		alert('You cannot send a private message to "' + target_name + '" because he or she is not in this room!');
-		return false;
-	}
-	
-	var trunc_msg_content = whisper_content.substring(target_name.length + 2);
-	
-	socket.emit('cts_whisper', target_name, trunc_msg_content);
-	displayMessage(glob_username + ' (whisper to ' + target_name + ')', trunc_msg_content, (new Date().getTime() / 1000));
-}
-
 function sendMessage() {
 	var $input_message = $('#input_message');
 
-	var reply_to = $input_message.data('reply-to');
+	var replyTo = $input_message.data('reply-target-message');
 	var content = $input_message.val();
 	
-	var msg_data = {
-		'msg_content': content,
-		'msg_reply_to': reply_to
+	var messageData = {
+		'content': content,
+		'reply_to': replyTo
 	};
 	
-	socket.emit('cts_message', msg_data);
+	socket.emit('cts_message', messageData);
 	console.log('emitting');
-	console.log(msg_data);
-	displayMessage(glob_username, reply_to, content, (new Date().getTime() / 1000));
+	console.log(messageData);
+	
+	destroyReply();
+	
+	displayMessage(glob_username, replyTo, content, (new Date().getTime() / 1000));
 }
 
-function initWhisper(member) {
-	var $input_message = $('#input_message');
-	var member_name = $(member).data('member');
+function initReply(messageLink) {
+	var $message = $(messageLink).parent();
+	var replyTargetMessage = $message.data('message-id');
+	var replyTargetAuthor = $message.data('message-author');
 	
-	$input_message.data('whisper-to', member_name);
-	$input_message.val('@' + member_name + ' ');
-	$input_message.focus();
+	var $input_message = $('#input_message');
+	$input_message.data('reply-target-message', replyTargetMessage);
+	$input_message.data('reply-target-author', replyTargetAuthor);
+	$input_message.popover('show');
+}
+
+function destroyReply() {
+	var $input_message = $('#input_message');
+	$input_message.data('reply-target-message', null);
+	$input_message.data('reply-target-author', null);
+	$input_message.popover('hide');
 }
 
 function resetMessageInput() {
 	var $input_message = $('#input_message');
-	$input_message.data('reply-to', null);
-	$input_message.data('whisper-to', null);
-	$input_message.val('');
+	$input_message.val('').trigger('autosize.resize');
 }
 
-function displayMessage(author, reply_to, content, time) {
+function displayMessage(author, replyTo, content, time) {
 	displayed_messages += 1;
 	
 	var htmlString = '<div class="message" data-msg-time="' + time + '">';
@@ -280,11 +275,7 @@ function getMemberEntryHTML(username, idle) {
 		idleContent = ' (idle)';
 	}
 	
-	if(username === glob_username) { // shouldn't be able to whisper to yourself
-		htmlString = username + idleContent;
-	} else {
-		htmlString = '<a class="member" data-member="' + username + '" onclick="initWhisper(this);" href="#">' + username + idleContent + '</a>';
-	}
+	htmlString = '<a class="member" data-member="' + username + '" href="#">' + username + idleContent + '</a>';
 	
 	return htmlString;
 }
@@ -305,10 +296,12 @@ function refreshTimeagos() {
 	});
 	
 	$('.message').each(function(i, element) {
-		var $msg = $(element);
-		var nice_time = moment.unix($msg.data('msg-time')).fromNow();
-		$msg.find('.msg_timeago').text(nice_time);
+		var $message = $(element);
+		var nice_time = moment.unix($message.data('message-time')).fromNow();
+		$message.attr('title', nice_time);
 	});
+	
+	$('[data-toggle="tooltip"]').tooltip({animation: false}); // enable bootstrap tooltips
 }
 
 function scrollBottom(element_id) {

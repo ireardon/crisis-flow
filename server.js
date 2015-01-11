@@ -84,10 +84,11 @@ var clientDirectory = io.sockets.clientDirectory = new clientdir.ClientDirectory
 // basically rests on the assumption that people won't be trying to join 
 // rooms immediately after the server starts up
 dbops.getAllRooms(function (rows) {
-	var room_ids = rows.map(function(row) {
-		return row.id;
-	});
-	clientDirectory.addRooms(room_ids);
+	for(var i=0; i<rows.length; i++) {
+		var room = rows[i];
+		var channelIdentifiers = room.channels.map(function(channel) { return channel.id });
+		clientDirectory.addRoom(room.id).addChannels(channelIdentifiers);
+	}
 });
 
 io.sockets.on('connection', function(socket) {
@@ -106,55 +107,55 @@ io.sockets.on('connection', function(socket) {
 		socket.join(roomID);
 		socket.room = roomID;
 		
-		clientDirectory.addClient(socket.user, socket, roomID, []);
+		clientDirectory.addClient(socket.user, socket, roomID);
 		
 		console.error(socket.room);
 		console.error(socket.user);
+		console.log(clientDirectory.getRoom(roomID).channels);
 		
-		setTimeout(function() { broadcastMembership(socket); }, 2000);
+		broadcastMembership(socket);
 	});
 
 	// the client emits this when they want to send a message
-	socket.on('cts_message', function(data) {
+	socket.on('cts_message', function(message) {
 		console.log('MESSAGE RECEIVED');
-		dbops.createMessage(socket.room, socket.user, data.msg_reply_to, data.msg_content, function(submitTime) {
-			data.msg_author = socket.user;
-			data.msg_time = submitTime;
+		dbops.createMessage(socket.room, socket.user, message.reply_to, message.content, function(submitTime) {
+			message.author = socket.user;
+			message.time = submitTime;
 			
-			socket.broadcast.to(socket.room).emit('stc_message', data); //emit to 'room' except this socket
+			socket.broadcast.to(socket.room).emit('stc_message', message); //emit to 'room' except this socket
 		});
 	});
 	
-	// the clients emits this when they want to send a "whisper" - a private message
-	socket.on('cts_whisper', function(target, message) {
-		var target_sock = clientDirectory.getSocket(target);
-	
-		if(!target_sock) {
-			console.log('ERROR unable to find socket specified as whisper recipient');
-			return;
-		}
-	
-		target_sock.emit('stc_whisper', socket.username, message, (new Date().getTime() / 1000)); // emit only to intended recipient
-	});
-	
 	// the client emits this whenever the user marks a task as completed
-	socket.on('cts_task_completed', function(task_id) {
+	socket.on('cts_task_completed', function(taskID) {
 		console.log('RECEIVED task completed');
-		dbops.updateTaskStatus(task_id, config.STATUS_COMPLETED);
-		socket.broadcast.to(socket.room).emit('stc_task_completed', task_id);
+		dbops.updateTaskStatus(taskID, config.STATUS_COMPLETED, function() {
+			socket.broadcast.to(socket.room).emit('stc_task_completed', taskID);
+		});
 	});
 	
 	// the client emits this whenever it types into the input field
 	socket.on('cts_typing', function() {
-		socket.broadcast.to(socket.room).emit('stc_typing', socket.username);
+		socket.broadcast.to(socket.room).emit('stc_typing', socket.user);
 	});
 	
 	socket.on('cts_user_idle', function() {
-		socket.broadcast.to(socket.room).emit('stc_user_idle', socket.username);
+		socket.broadcast.to(socket.room).emit('stc_user_idle', socket.user);
 	});
 
 	socket.on('cts_user_active', function() {
-		socket.broadcast.to(socket.room).emit('stc_user_active', socket.username);
+		socket.broadcast.to(socket.room).emit('stc_user_active', socket.user);
+	});
+	
+	socket.on('cts_join_channel', function(channelID) {
+		clientDirectory.addToChannel(socket.user, socket.room, channelID);
+		console.log(clientDirectory.getRoom(socket.room).channels);
+	});
+	
+	socket.on('cts_leave_channel', function(channelID) {
+		clientDirectory.removeFromChannel(socket.user, socket.room, channelID);
+		console.log(clientDirectory.getRoom(socket.room).channels);
 	});
 	
 	// the client disconnected/closed their browser window
@@ -225,7 +226,7 @@ app.post('/create_room', function(request, response) {
 	
 	var roomName = request.body.room_name;
 	dbops.createRoom(roomName, function(roomID) {
-		clientDirectory.addRooms([roomID]);
+		clientDirectory.addRoom(roomID);
 		response.json(roomID);
 	});
 });
@@ -240,9 +241,8 @@ app.post('/delete_room', function(request, response) {
 	}
 	
 	var roomID = request.body.room_id;
-	clientDirectory.removeRooms([roomID]);
+	clientDirectory.removeRoom(roomID);
 	dbops.deleteRoom(roomID, function() {
-		clientDirectory.removeRooms([roomID]);
 		response.json(roomID);
 	});
 });
@@ -427,20 +427,18 @@ app.get('/rooms/:roomID', function(request, response) {
 	
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
-	dbops.getRoomName(roomID, function(roomName) {
+	dbops.getRoom(roomID, function(room) {
 		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(message_list) {
 			dbops.getOpenTasksForRoom(roomID, function(task_list) {
 				var context = {
-					'room_id': roomID,
-					'room_name': roomName,
+					'room': room,
 					'username': username,
 					'message_list': message_list,
 					'task_list': task_list,
 					'upload_path': config.UPLOAD_PATH
 				};
 				
-				
-				console.log(context);
+				console.log(message_list);
 				response.render('room.html', context);
 			});
 		});
@@ -456,10 +454,14 @@ app.get('/add_task/:roomID', function(request, response) {
 		return;
 	}
 	
-	var context = {
-		'room_id': request.params.roomID
-	};
-	response.render('add_task.html', context);
+	dbops.getAllTags(function(tags) {
+		var context = {
+			'room_id': request.params.roomID,
+			'tags': tags
+		};
+			
+		response.render('add_task.html', context);
+	});
 });
 
 app.get('/manage_rooms', function(request, response) {
@@ -615,6 +617,6 @@ function broadcastMembership(socket) {
 		return c.username;
 	});
 	
-	//socket.emit('membership_change', usernames); // the socket that caused this wants the updated list too
-	//socket.broadcast.to(socket.room).emit('membership_change', usernames); // everybody else
+	socket.emit('membership_change', usernames); // the socket that caused this wants the updated list too
+	socket.broadcast.to(socket.room).emit('membership_change', usernames); // everybody else
 }

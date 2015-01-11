@@ -2,13 +2,13 @@
 <html>
 	<head>
 		<% include "common_includes.html" %>
-		<script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.min.js" charset="utf-8"></script>
-		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.6.0/moment.min.js" charset="utf-8"></script>		
+		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.6.0/moment.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/autosize/jquery.autosize.min.js"></script>
 		<script type="text/javascript" src="/js/room.js" charset="utf-8"></script>
 		<link rel="stylesheet" type="text/css" href="/css/room.css"></link>
-		<title id="page_title"><%= @room_name %> | Chatroom</title>
+		<title id="page_title"><%= @room.name %> | Chatroom</title>
 		
-		<meta name="room_id" content="<%- @room_id %>"/>
+		<meta name="room_id" content="<%- @room.id %>"/>
 		<meta name="username" content="<%- @username %>"/>
 		
 		<script src="/socket.io/socket.io.js"></script>
@@ -55,7 +55,7 @@
 		<% end %>
 		<% include "navbar.html" %>
 		<div id="body_content">
-			<h2><%= @room_name %></h2>
+			<h2><%= @room.name %></h2>
 			<div id="task_content">
 				<div id="tasks">
 					<div id="task_wrapper">
@@ -69,13 +69,15 @@
 						<% end %>
 					</div>
 				</div>
-				<a href="/add_task/<%- @room_id %>" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
+				<a href="/add_task/<%- @room.id %>" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
 			</div>
 			<div id="messaging_content">
 				<div id="messages">
 					<% for message in @message_list : %>
-						<div class="message" data-id="<%- message.id %>" data-msg-time="<%- message.time %>">
-							<strong><%= message.author %>: (<span class="msg_timeago"></span>)</strong>
+						<div class="message" data-message-id="<%- message.id %>" data-message-time="<%- message.time %>" 
+						data-message-author="<%= message.author %>" data-message-reply="<%- message.reply %>" 
+						data-toggle="tooltip" data-placement="left">
+							<a class="reply_link" onclick="initReply(this);"><strong><%= message.author %>:</strong></a>
 							<% if message.reply >= 0 : %>
 								<p>In reply to message <%- message.reply %></p>
 							<% end %>
@@ -84,17 +86,27 @@
 					<% end %>
 				</div>
 				<form id="add_message_form"  class="form-inline">
-					<div class="input-group">
-						<span class="input-group-addon">Reply to</span>
-						<input id="input_message" type="text" class="form-control" placeholder="Hi, <%- @username %>! Say something…" data-reply-to="" data-whisper-to="">
-					</div>
+					<textarea id="input_message" class="form-control" autofocus="true" 
+					data-toggle="popover" placeholder="Hi, <%- @username %>! Say something…">
+					</textarea>
 					<button id="send_message" class="btn btn-primary" type="submit">Send</button>
 				</form>
 			</div>
 		</div>
 		<div id="sidebar">
 			<div id="sidebar_content">
-				<h4>Chatters</h4>
+				<h4>Channels</h4>
+				<div id="channels">
+					<% for channel in @room.channels : %>
+						<div class="channel">
+							<input id="channel_toggle_<%- channel.id %>" class="channel_toggle" 
+							type="checkbox" data-channel-id="<%- channel.id %>" checked="true">
+							</input>
+							<span class="channel_name"><%= channel.name %></span>
+						</div>
+					<% end %>
+				</div>
+				<h4>Members</h4>
 				<div id="members">
 				</div>
 			</div>
