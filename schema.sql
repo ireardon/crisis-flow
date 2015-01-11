@@ -57,8 +57,7 @@ CREATE TABLE tasks (
 
 CREATE TABLE tags (
 	id INTEGER PRIMARY KEY,
-	name TEXT,
-	description TEXT
+	name TEXT
 );
 
 CREATE TABLE task_tags (

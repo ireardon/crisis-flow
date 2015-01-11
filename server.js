@@ -321,24 +321,35 @@ app.post('/add_task/:roomID', function(request, response) {
 	var room_id = request.params.roomID;
 	var author = request.session.user.username;
 	var highPriority = Boolean(request.body.high_priority);
+	var selectedTags = request.body.tags;
 	
 	var files = Object.keys(request.files).map(function(key) {
 		return request.files[key];
 	});
 	
-	dbops.createTask(room_id, author, request.body.title, highPriority, request.body.content, function(taskID, submitTime) {
-		attachFilesToTask(taskID, files, function() {
-			var taskData = {
-				'task_title': request.body.title, 
-				'task_author': author,
-				'task_high_priority': highPriority,
-				'task_content': request.body.content,
-				'task_time': submitTime
-			};
-			
-			io.sockets.in(room_id).emit('stc_add_task', taskData);
-			
-			response.redirect('/rooms/' + room_id);
+	dbops.getAllTags(function(preexistingTags) {
+		var preexistingTagIdentifiers = preexistingTags.map(function(tag) {
+			return tag.id;
+		});
+		
+		createNewTags(selectedTags, preexistingTagIdentifiers, function(allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
+			dbops.createTask(room_id, author, request.body.title, highPriority, request.body.content, function(taskID, submitTime) {
+				dbops.attachTagsToTask(taskID, allSelectedTags, function() {
+					attachFilesToTask(taskID, files, function() {
+						var taskData = {
+							'task_title': request.body.title, 
+							'task_author': author,
+							'task_high_priority': highPriority,
+							'task_content': request.body.content,
+							'task_time': submitTime
+						};
+						
+						io.sockets.in(room_id).emit('stc_add_task', taskData);
+						
+						response.redirect('/rooms/' + room_id);
+					});
+				});
+			});
 		});
 	});
 });
@@ -582,6 +593,37 @@ function getAccessRole(access_code_salted_hash, client_salt, server_salt) {
 	}
 	
 	return 0;
+}
+
+// callback called with arg which is a list of the tag IDs of both new and preexisting selected tags
+function createNewTags(selectedTags, preexistingTags, callback) {
+	console.log('SELECTED?');
+	console.log(selectedTags);
+	if(!(selectedTags instanceof Array)) { // this is necessary because selectedTags may be a singleton
+		selectedTags = [selectedTags];
+	}
+	console.log(selectedTags);
+
+	var newTagNames = [];
+	var oldTagIdentifiers = [];
+	for(var i=0; i<selectedTags.length; i++) {
+		var currentTag = selectedTags[i];
+		var index = preexistingTags.indexOf(Number(currentTag)); // coerce potential ids to numbers
+		console.log(index);
+		
+		if(index === -1) { // this selected tag is not preexisting
+			newTagNames.push(currentTag);
+		} else { // this selected tag is preexisting
+			oldTagIdentifiers.push(currentTag);
+		}
+	}
+	
+	console.log(newTagNames);
+	console.log(oldTagIdentifiers);
+	dbops.createTags(newTagNames, function(newTagIdentifiers) {
+		var selectedTagIdentifiers = oldTagIdentifiers.concat(newTagIdentifiers);
+		callback(selectedTagIdentifiers);
+	});
 }
 
 function attachFilesToTask(task, files, callback) {
