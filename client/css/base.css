@@ -1,17 +1,25 @@
-html {
-	background: url(/assets/maplewood.jpg) no-repeat center center fixed;
-	-webkit-background-size: cover;
-	-moz-background-size: cover;
-	-o-background-size: cover;
-	background-size: cover;
-}
+/**
+COLORS
+
+#1f1d1d: dark grey
+#03ffc1: aquamarine
+#141313: almost black
+#E3E3E3: light grey
+
+**/
 
 body {
-	background-color: transparent;
+	background-color: #1f1d1d;
 }
 
-h1,h2,h3,h4,h5,p,a,label {
-	font-family: "Marmelad", "Verdana", sans-serif;
+h1,h2,h3,h4,h5 {
+	font-family: "Droid Serif", serif;
+	color: #03ffc1;
+}
+
+p,a,label,span {
+	font-family: "Open Sans", Helvetica, sans-serif;
+	color: #E3E3E3;
 }
 
 a.btn {
@@ -19,7 +27,12 @@ a.btn {
 }
 
 a {
+	cursor: pointer;
 	text-decoration: none;
+}
+
+.navbar-header a {
+	font-family: "Montserrat", sans-serif;
 }
 
 form label {
@@ -27,7 +40,19 @@ form label {
 }
 
 a:hover {
-	text-decoration: underline;
+	color: #E3E3E3;
+}
+
+.navbar-inverse {
+	background-color: #141313;
+}
+
+.form-control {
+	background-color: #E3E3E3;
+}
+
+.btn-default {
+	background-color: #E3E3E3;
 }
 
 #body_content {
@@ -36,8 +61,7 @@ a:hover {
 
 #body_content h2 {
 	font-size: 36pt;
-	color: #000000;
-	text-shadow: 2px 2px #ffffff;
+	text-shadow: 2px 2px #000000;
 	text-align: center;
 	margin: 20px auto 0 auto;
 	width: 80%;

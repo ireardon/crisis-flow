@@ -12,6 +12,10 @@
 	max-width: 300px;
 }
 
+.select2-container--default .select2-selection--multiple {
+	background-color: #E3E3E3 !important;
+}
+
 #task_title {
 	max-width: 500px;
 	display: inline-block;

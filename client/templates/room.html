@@ -77,7 +77,7 @@
 						<div class="message" data-message-id="<%- message.id %>" data-message-time="<%- message.time %>" 
 						data-message-author="<%= message.author %>" data-message-reply="<%- message.reply %>" 
 						data-toggle="tooltip" data-placement="left">
-							<a class="reply_link" onclick="initReply(this);"><strong><%= message.author %>:</strong></a>
+							<a class="reply_link" onclick="initReply(this);"><%= message.author %>:</a>
 							<% if message.reply >= 0 : %>
 								<p>In reply to message <%- message.reply %></p>
 							<% end %>

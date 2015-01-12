@@ -20,7 +20,7 @@ $(document).ready(function() {
 			$('#high_priority_input').val(true);
 		}
 		
-		$this.toggleClass('btn-default btn-success');
+		$this.toggleClass('btn-default btn-danger');
 	});
 	
 	$('#additional_files_button').on('click', function() {

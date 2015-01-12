@@ -1,8 +1,8 @@
 #tasks {
-	background-color: rgba(255, 255, 255, 0.4);
-	-moz-box-shadow: 1px 1px 3px 3px #3D3D3D;
-	-webkit-box-shadow: 1px 1px 3px 3px #3D3D3D;
-	box-shadow: 1px 1px 3px 3px #3D3D3D;
+	background-color: rgba(255, 255, 255, 0.1);
+	-moz-box-shadow: 1px 1px 3px 3px #141313; /*3D3D3D*/
+	-webkit-box-shadow: 1px 1px 3px 3px #141313;
+	box-shadow: 1px 1px 3px 3px #141313;
 	padding: 10px;
 	margin: 20px auto;
 	height: 400px;
@@ -14,14 +14,15 @@
 	position: absolute;
 	bottom: 0;
 	max-height: 100%;
+	width: 95%;
 	overflow: visible;
 }
 
 #messages {
-	background-color: rgba(255, 255, 255, 0.4);
-	-moz-box-shadow: 1px 1px 3px 3px #3D3D3D;
-	-webkit-box-shadow: 1px 1px 3px 3px #3D3D3D;
-	box-shadow: 1px 1px 3px 3px #3D3D3D;
+	background-color: rgba(255, 255, 255, 0.1);
+	-moz-box-shadow: 1px 1px 3px 3px #141313;
+	-webkit-box-shadow: 1px 1px 3px 3px #141313;
+	box-shadow: 1px 1px 3px 3px #141313;
 	padding: 10px;
 	margin: 20px auto;
 	height: 400px;
@@ -69,12 +70,17 @@
 	right: 0;
 }
 
-.task {
+.modal-dialog h3, .modal-dialog h5, .modal-dialog p, .modal-dialog span {
 	color: black;
-	border: 2px outset grey;
-	-moz-border-radius: 10px;
-	-webkit-border-radius: 10px;
-	border-radius: 10px;
+}
+
+.task {
+	margin-bottom: 2px;
+	padding: 2px 11px;
+	border: 1px solid #141313;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	border-radius: 3px;
 }
 
 .task_detail_priority {
@@ -88,11 +94,19 @@ span.glyphicon {
 
 .task_title {
 	font-weight: bold;
-	cursor: pointer;
+}
+
+.reply_link {
+	font-weight: bold;
 }
 
 .message {
-	color: #000E5E;
+	margin-bottom: 2px;
+	padding: 2px 11px;
+	border: 1px solid #141313;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	border-radius: 3px;
 }
 
 .message.typing_notification {
