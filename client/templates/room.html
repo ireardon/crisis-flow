@@ -17,7 +17,7 @@
 		</script>
 	</head>
 	<body ng-controller="ContextController">
-		<div id="task_detail_modals" ng-repeat="task in tasks">
+		<div id="task_detail_modals" ng-repeat="task in tasks track by task.id">
 			<!-- modal dialog containing task details (starts hidden) -->
 			<div id="task_detail_{{ task.id }}" class="task_detail modal fade" role="dialog" aria-hidden="true">
 				<div class="modal-dialog">
@@ -30,7 +30,7 @@
 							<div ng-show="task.tags.length" class="task_detail_tags_list">
 								<span>Tags:</span>
 								<ul class="task_tags">
-										<li ng-repeat="tag in task.tags" class="task_tag">{{ tag.name }}</li>
+										<li ng-repeat="tag in task.tags track by tag.id" class="task_tag">{{ tag.name }}</li>
 								</ul>
 							</div>
 							<p class="task_detail_profile">Submitted by {{ task.author }} (<span class="task_time"></span>)</p>
@@ -44,14 +44,14 @@
 							<div ng-show="task.attachments.length" class="task_attachments">
 								<h5>Attachments</h5>
 								<a ng-repeat="attachment in task.attachments" class="attachment_link" 
-								href="<%- @upload_path %>{{ attachment.internal_filename }}">{{ attachment.user_filename }}</a>
+								ng-href="<%- @upload_path %>{{ attachment.internal_filename }}">{{ attachment.user_filename }}</a>
 							</div>
-							<button ng-show="{{ task.status > 0 }}" type="button" class="task_status_retreat btn btn-default">
+							<button ng-click="retreatTaskStatus(task.id)" ng-show="task.status > 0" type="button" class="task_status_retreat btn btn-default">
 								<span class="left_arrow">&#10152;</span>
-								<span>Revert status</span>
+								<span>{{ statusStrings[task.status - 1] }}</span>
 							</button>
-							<button ng-show="{{ task.status < 2 }}" type="button" class="task_status_advance btn btn-primary">
-								<span>Advance status</span>
+							<button ng-click="advanceTaskStatus(task.id)" ng-show="task.status < 2" type="button" class="task_status_advance btn btn-primary">
+								<span>{{ statusStrings[task.status + 1] }}</span>
 								<span>&#10152;</span>
 							</button>
 							<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
@@ -67,26 +67,29 @@
 				<div id="tasks">
 					<div id="task_wrapper">
 						<!-- task entry in task queue -->
-						<div ng-repeat="task in tasks" id="task_{{ task.id }}" class="task">
+						<div ng-repeat="task in tasks track by task.id" ng-if="task.status >= 0 && task.status < 2" id="task_{{ task.id }}" class="task">
 							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
 							<a class="task_title" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>
+							<div class="task_summary">
+								<span class="task_author">From: {{ task.author }}</span>
+								<span class="task_status">Status: {{ statusStrings[task.status] }}</span>
+							</div>
 							<div ng-show="task.tags.length" class="task_preview_tags_list">
 								<span>Tags:</span>
 								<ul class="task_tags">
-									<li ng-repeat="tag in task.tags" class="task_tag">{{ tag.name }}</li>
+									<li ng-repeat="tag in task.tags track by tag.id" class="task_tag">{{ tag.name }}</li>
 								</ul>
 							</div>
-							<p class="task_author">Submitted by {{ task.author }} (<span class="task_timeago"></span>)</p>
 						</div>
 					</div>
 				</div>
-				<a href="/add_task/{{ room.id }}" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
+				<a ng-href="/add_task/{{ room.id }}" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
 			</div>
 			<div id="messaging_content">
 				<div id="messages">
-					<div ng-repeat="message in messages" class="message" data-toggle="tooltip" data-placement="left">
-						<a class="reply_link" onclick="initReply(this);">{{ message.author }}</a>
-						<p ng-show="{{ message.reply >= 0 }}">In reply to message {{ message.reply }}</p>
+					<div ng-repeat="message in messages track by message.id" class="message" data-toggle="tooltip" data-placement="left">
+						<a class="reply_link" onclick="initReply(this);">{{ message.author }}:</a>
+						<p ng-show="message.reply >= 0">In reply to message {{ message.reply }}</p>
 						<p>{{ message.content }}</p>
 					</div>
 				</div>
@@ -102,7 +105,7 @@
 			<div id="sidebar_content">
 				<h4>Channels</h4>
 				<div id="channels">
-					<div ng-repeat="channel in room.channels" class="channel">
+					<div ng-repeat="channel in room.channels track by channel.id" class="channel">
 						<input id="channel_toggle_{{ channel.id }}" class="channel_toggle" 
 						type="checkbox" checked="true">
 						</input>

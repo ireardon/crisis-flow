@@ -119,7 +119,9 @@ io.sockets.on('connection', function(socket) {
 	// the client emits this when they want to send a message
 	socket.on('cts_message', function(message) {
 		console.log('MESSAGE RECEIVED');
-		dbops.createMessage(socket.room, socket.user, message.reply_to, message.content, function(submitTime) {
+		dbops.createMessage(socket.room, socket.user, message.reply, message.content, function(messageID, submitTime) {
+			message.id = messageID;
+			message.room = socket.room;
 			message.author = socket.user;
 			message.time = submitTime;
 			
@@ -131,18 +133,8 @@ io.sockets.on('connection', function(socket) {
 	socket.on('cts_task_status_changed', function(taskID, oldStatus, newStatus) {
 		console.log('RECEIVED task status change');
 		
-		console.log(oldStatus);
-		console.log(newStatus);
-		
 		oldStatus = Number(oldStatus);
 		newStatus = Number(newStatus);
-		
-		console.log(oldStatus);
-		console.log(newStatus);
-		
-		console.log(config.STATUS_MAP);
-		console.log(config.STATUS_MAP[oldStatus]);
-		console.log(config.STATUS_MAP[newStatus]);
 		
 		if(!validStatus(oldStatus) || !validStatus(newStatus)) {
 			console.error('ERROR invalid task status change');
@@ -215,7 +207,8 @@ app.get('/rooms/:roomID/data', function(request, response) {
 					'room': room,
 					'username': username,
 					'messages': messages,
-					'tasks': tasks
+					'tasks': tasks,
+					'statusMap': config.STATUS_MAP
 				};
 				
 				console.log(tasks);
@@ -346,7 +339,7 @@ app.post('/add_task/:roomID', function(request, response) {
 	
 	console.log(request.files);
 	console.log(request.body);
-	var room_id = request.params.roomID;
+	var roomID = request.params.roomID;
 	var author = request.session.user.username;
 	var highPriority = JSON.parse(request.body.high_priority);
 	var selectedTags = request.body.tags;
@@ -361,20 +354,29 @@ app.post('/add_task/:roomID', function(request, response) {
 		});
 		
 		createNewTags(selectedTags, preexistingTagIdentifiers, function(allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
-			dbops.createTask(room_id, author, request.body.title, highPriority, request.body.content, function(taskID, submitTime) {
+			dbops.createTask(roomID, author, request.body.title, highPriority, request.body.content, function(taskID, submitTime) {
 				dbops.attachTagsToTask(taskID, allSelectedTags, function() {
 					attachFilesToTask(taskID, files, function() {
+						var attachments = files.map(function(file) {
+							return {'user_filename': file.orginalname, 'internal_filename': file.name};
+						});	
+					
 						var taskData = {
-							'task_title': request.body.title, 
-							'task_author': author,
-							'task_high_priority': highPriority,
-							'task_content': request.body.content,
-							'task_time': submitTime
+							'id': taskID,
+							'room': roomID,
+							'author': author,
+							'title': request.body.title,
+							'status': config.STATUS_SUBMITTED,
+							'high_priority': highPriority,
+							'content': request.body.content,
+							'time': submitTime,
+							'tags': allSelectedTags,
+							'attachments': attachments
 						};
 						
-						io.sockets.in(room_id).emit('stc_add_task', taskData);
+						io.sockets.in(roomID).emit('stc_add_task', taskData);
 						
-						response.redirect('/rooms/' + room_id);
+						response.redirect('/rooms/' + roomID);
 					});
 				});
 			});

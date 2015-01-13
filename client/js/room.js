@@ -11,6 +11,8 @@ var time_refresh_interval = -1;
 var angularApp = angular.module('room', []);
 
 angularApp.controller('ContextController', function($scope) {
+	console.log(this);
+
 	angular.element(document).ready(function() {
 		jQuery.ajax({
 			url: '/rooms/' + global_roomID + '/data',
@@ -20,23 +22,63 @@ angularApp.controller('ContextController', function($scope) {
 				$scope.room = data.room;
 				$scope.tasks = data.tasks;
 				$scope.messages = data.messages;
+				$scope.statusStrings = data.statusMap;
 				$scope.$apply();
-			
-				console.log($scope);
-				console.log('GOOD TO GO?');
 			
 				socket.emit('join', global_roomID, global_username);
 			}
 		});
+		
+		socket.on('stc_add_task', function(newTask) {
+			$scope.tasks.push(newTask);
+			$scope.$apply();
+		});
+		
+		socket.on('stc_message', function(newMessage) {
+			removeTypingNote(newMessage.author);
+			$scope.messages.push(newMessage);
+			$scope.$apply();
+		});
+		
+		$scope.advanceTaskStatus = function(taskID) {
+			var task = getEntryByID($scope.tasks, taskID);
+			var currentStatus = task.status;
+			var newStatus = currentStatus + 1;
+			console.log('advance ' + taskID);
+			console.log('newStatus ' + newStatus);
+			socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
+			task.status = newStatus;
+			console.log('Message emitted!');
+		};
+		
+		$scope.retreatTaskStatus = function(taskID) {
+			var task = getEntryByID($scope.tasks, taskID);
+			var currentStatus = task.status;
+			var newStatus = currentStatus - 1;
+			console.log('advance ' + taskID);
+			console.log('newStatus ' + newStatus);
+			socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
+			task.status = newStatus;
+			console.log('Message emitted!');
+		};
 	});
 });
+
+function getEntryByID(list, id) {
+	var entry = false;
+	list.forEach(function(element) {
+		if(element.id === id) {
+			entry = element;
+		}
+	});
+	
+	return entry;
+}
 
 $(document).ready(function() {
 	global_roomID = document.querySelector('meta[name=room_id]').content;
 	global_username = document.querySelector('meta[name=username]').content;
 	
-	console.log('got metas');
-
 	$('#input_message').autosize();
 	$('#input_message').popover({
 		html: true,
@@ -61,14 +103,10 @@ $(document).ready(function() {
 	time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
 
 	socket.on('error', function(message) { // message is an event object for some reason, not a string
-		console.log(message);
-		console.error('Error: Web socket disconnected: ', message);
+		console.error(message);
+		console.error('Error: Web socket disconnected');
 		alert('Error: Web socket disconnected: ' + message);
 		window.location.href = '/';
-	});
-	
-	socket.on('stc_add_task', function(task_data) {
-		console.log(task_data);
 	});
 	
 	socket.on('membership_change', function(members) {
@@ -83,11 +121,6 @@ $(document).ready(function() {
 			var htmlString = getMemberEntryHTML(curr_member, false);
 			$('#members').append('<p id="member_' + curr_member + '" data-idle="false">' + htmlString + '</p>');
 		}
-	});
-	
-	socket.on('stc_message', function(message) {
-		removeTypingNote(message.author);
-		displayMessage(message.author, message.reply_to, message.content, message.time);
 	});
 	
 	socket.on('stc_typing', function(username) {
@@ -139,29 +172,6 @@ $(document).ready(function() {
 		resetMessageInput();
 		
 		return false;
-	});
-	
-	$('.task_status_advance').on('click', function() {
-		var $taskDetail = $(this).closest('.task_detail');
-		var taskID = $taskDetail.data('task-id');
-		var currentStatus = $taskDetail.data('task-status');
-		var newStatus = currentStatus + 1;
-		$taskDetail.data('task-status', newStatus);
-		console.log(taskID);
-		socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
-		console.log('Message emitted!');
-	});
-	
-	$('.task_status_retreat').on('click', function() {
-		var $taskDetail = $(this).closest('.task_detail');
-		var taskID = $taskDetail.data('task-id');
-		var currentStatus = $taskDetail.data('task-status');
-		var newStatus = currentStatus - 1;
-		$taskDetail.data('task-status', newStatus);
-
-		console.log(taskID);
-		socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
-		console.log('Message emitted!');
 	});
 	
 	$('#input_message').keypress(function(e) {
@@ -231,7 +241,7 @@ function sendMessage() {
 	
 	var messageData = {
 		'content': content,
-		'reply_to': replyTo
+		'reply': replyTo
 	};
 	
 	socket.emit('cts_message', messageData);
