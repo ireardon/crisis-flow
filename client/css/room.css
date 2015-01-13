@@ -153,6 +153,7 @@ a:hover.attachment_link { /* we want default bootstrap link colors for these */
 	display: inline;
 	padding: 3px;
 	border-radius: 3px;
+	margin-right: 3px;
 }
 
 .message {

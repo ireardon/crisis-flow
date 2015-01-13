@@ -198,20 +198,30 @@ io.sockets.on('connection', function(socket) {
   ###################################*/
 
 // get updated json of the messages for a given room
-app.get('/rooms/:roomID/messages.json', function(request, response) {
+app.get('/rooms/:roomID/data', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
-	
+
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
 		return;
 	}
-
+	
 	var roomID = request.params.roomID;
-
-	// fetch all of the messages for this room
-	dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(messagesList) {
-		// encode the messages object as JSON and send it back
-		response.json(messagesList);
+	var username = request.session.user.username;
+	dbops.getRoom(roomID, function(room) {
+		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(messages) {
+			dbops.getOpenTasksForRoom(roomID, function(tasks) {
+				var context = {
+					'room': room,
+					'username': username,
+					'messages': messages,
+					'tasks': tasks
+				};
+				
+				console.log(tasks);
+				response.json(context);
+			});
+		});
 	});
 });
 
@@ -457,20 +467,13 @@ app.get('/rooms/:roomID', function(request, response) {
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
 	dbops.getRoom(roomID, function(room) {
-		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(message_list) {
-			dbops.getOpenTasksForRoom(roomID, function(task_list) {
-				var context = {
-					'room': room,
-					'username': username,
-					'message_list': message_list,
-					'task_list': task_list,
-					'upload_path': config.UPLOAD_PATH
-				};
-				
-				console.log(task_list);
-				response.render('room.html', context);
-			});
-		});
+		var context = {
+			'room': room,
+			'username': username,
+			'upload_path': config.UPLOAD_PATH
+		};
+		
+		response.render('room.html', context);
 	});
 });
 

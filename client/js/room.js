@@ -4,11 +4,39 @@ var displayed_messages = 0;
 var room_members = [];
 var members_typing_cooldown = {};
 var members_typing_flag = {};
-var glob_roomID, glob_username;
+var global_roomID, global_username;
 var typing_interval_id = -1;
 var time_refresh_interval = -1;
 
+var angularApp = angular.module('room', []);
+
+angularApp.controller('ContextController', function($scope) {
+	angular.element(document).ready(function() {
+		jQuery.ajax({
+			url: '/rooms/' + global_roomID + '/data',
+			dataType: 'json',
+			success: function(data) {
+				$scope.username = data.username;
+				$scope.room = data.room;
+				$scope.tasks = data.tasks;
+				$scope.messages = data.messages;
+				$scope.$apply();
+			
+				console.log($scope);
+				console.log('GOOD TO GO?');
+			
+				socket.emit('join', global_roomID, global_username);
+			}
+		});
+	});
+});
+
 $(document).ready(function() {
+	global_roomID = document.querySelector('meta[name=room_id]').content;
+	global_username = document.querySelector('meta[name=username]').content;
+	
+	console.log('got metas');
+
 	$('#input_message').autosize();
 	$('#input_message').popover({
 		html: true,
@@ -21,9 +49,6 @@ $(document).ready(function() {
 			return htmlString;
 		}
 	});
-	glob_roomID = document.querySelector('meta[name=room_id]').content;
-	glob_username = document.querySelector('meta[name=username]').content;
-	socket.emit('join', glob_roomID, glob_username);
 	
 	typing_interval_id = window.setInterval(checkTyping, TYPE_DELAY);
 	
@@ -215,7 +240,7 @@ function sendMessage() {
 	
 	destroyReply();
 	
-	displayMessage(glob_username, replyTo, content, (new Date().getTime() / 1000));
+	displayMessage(global_username, replyTo, content, (new Date().getTime() / 1000));
 }
 
 function initReply(messageLink) {

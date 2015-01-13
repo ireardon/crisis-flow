@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="room">
 	<head>
 		<% include "common_includes.html" %>
 		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.6.0/moment.min.js" charset="utf-8"></script>
 		<script type="text/javascript" src="/autosize/jquery.autosize.min.js"></script>
 		<script type="text/javascript" src="/js/room.js" charset="utf-8"></script>
 		<link rel="stylesheet" type="text/css" href="/css/room.css"></link>
-		<title id="page_title"><%= @room.name %> | Chatroom</title>
+		<title id="page_title"><%= @room.name %> | Crisis Flow</title>
 		
 		<meta name="room_id" content="<%- @room.id %>"/>
 		<meta name="username" content="<%- @username %>"/>
@@ -16,113 +16,83 @@
 			var socket = io.connect();
 		</script>
 	</head>
-	<body>
-		<% for task in @task_list : %>
+	<body ng-controller="ContextController">
+		<div id="task_detail_modals" ng-repeat="task in tasks">
 			<!-- modal dialog containing task details (starts hidden) -->
-			<div id="task_<%- task.id %>_detail" class="task_detail modal fade" role="dialog" aria-hidden="true" 
-			data-task-id="<%- task.id %>" data-task-time="<%- task.time %>" data-task-high-priority="<%- task.high_priority %>" 
-			data-task-content="<%= task.content %>"  data-task-status="<%- task.status %>">
+			<div id="task_detail_{{ task.id }}" class="task_detail modal fade" role="dialog" aria-hidden="true">
 				<div class="modal-dialog">
 					<div class="modal-content">
 						<div class="modal-header">
 							<button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-							<h3 class="modal-title"><%= task.title %></h3>
-							<% if task.high_priority : %>
-								<span class="glyphicon glyphicon-exclamation-sign"></span>
-								<h4 class="task_detail_priority">High Priority</h4>
-							<% end %>
-							<% if task.tags.length > 0 : %>
-								<div class="task_detail_tags_list">
-									<span>Tags:</span>
-									<ul class="task_tags">
-										<% for tag in task.tags : %>
-											<li class="task_tag"><%= tag.name %></li>
-										<% end %>
-									</ul>
-								</div>
-							<% end %>
-							<p class="task_detail_profile">Submitted by <%= task.author %> (<span class="task_time"></span>)</p>
+							<h3 class="modal-title">{{ task.title }}</h3>
+							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
+							<h4 ng-show="task.high_priority" class="task_detail_priority">High Priority</h4>
+							<div ng-show="task.tags.length" class="task_detail_tags_list">
+								<span>Tags:</span>
+								<ul class="task_tags">
+										<li ng-repeat="tag in task.tags" class="task_tag">{{ tag.name }}</li>
+								</ul>
+							</div>
+							<p class="task_detail_profile">Submitted by {{ task.author }} (<span class="task_time"></span>)</p>
 						</div>
 						<div class="modal-body">
 							<div class="task_content">
-								<p><%= task.content %></p>
+								<p>{{ task.content }}</p>
 							</div>
 						</div>
 						<div class="modal-footer">
-							<% if task.attachments.length > 0 : %>
-								<div class="task_attachments">
-									<h5>Attachments</h5>
-									<% for attachment in task.attachments : %>
-										<a class="attachment_link" href="<%- @upload_path %><%- attachment.internal_filename %>"><%- attachment.user_filename %></a>
-									<% end %>
-								</div>
-							<% end %>
-							<% if task.status > 0 : %>
-								<button type="button" class="task_status_retreat btn btn-default">
-									<span class="left_arrow">&#10152;</span>
-									<span>Revert status</span>
-								</button>
-							<% end %>
-							<% if task.status < 2 : %>
-								<button type="button" class="task_status_advance btn btn-primary">
-									<span>Advance status</span>
-									<span>&#10152;</span>
-								</button>
-							<% end %>
+							<div ng-show="task.attachments.length" class="task_attachments">
+								<h5>Attachments</h5>
+								<a ng-repeat="attachment in task.attachments" class="attachment_link" 
+								href="<%- @upload_path %>{{ attachment.internal_filename }}">{{ attachment.user_filename }}</a>
+							</div>
+							<button ng-show="{{ task.status > 0 }}" type="button" class="task_status_retreat btn btn-default">
+								<span class="left_arrow">&#10152;</span>
+								<span>Revert status</span>
+							</button>
+							<button ng-show="{{ task.status < 2 }}" type="button" class="task_status_advance btn btn-primary">
+								<span>Advance status</span>
+								<span>&#10152;</span>
+							</button>
 							<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 						</div>
 					</div>
 				</div>
 			</div>
-		<% end %>
+		</div>
 		<% include "navbar.html" %>
 		<div id="body_content">
-			<h2><%= @room.name %></h2>
+			<h2>{{ room.name }}</h2>
 			<div id="task_content">
 				<div id="tasks">
 					<div id="task_wrapper">
-						<% for task in @task_list : %>
-							<!-- task entry in task queue -->
-							<div id="task_<%- task.id %>" class="task" data-task-id="<%- task.id %>" data-task-time="<%- task.time %>" 
-							data-task-high-priority="<%- task.high_priority %>" data-task-content="<%= task.content %>" data-task-status="<%- task.status %>">
-								<% if task.high_priority : %>
-									<span class="glyphicon glyphicon-exclamation-sign"></span>
-								<% end %>
-								<a class="task_title" data-toggle="modal" data-target="#task_<%- task.id %>_detail"><%= task.title %></a>
-								<% if task.tags.length > 0 : %>
-									<div class="task_preview_tags_list">
-										<span>Tags:</span>
-										<ul class="task_tags">
-											<% for tag in task.tags : %>
-												<li class="task_tag"><%= tag.name %></li>
-											<% end %>
-										</ul>
-									</div>
-								<% end %>
-								<p class="task_author">Submitted by <%= task.author %> (<span class="task_timeago"></span>)</p>
+						<!-- task entry in task queue -->
+						<div ng-repeat="task in tasks" id="task_{{ task.id }}" class="task">
+							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
+							<a class="task_title" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>
+							<div ng-show="task.tags.length" class="task_preview_tags_list">
+								<span>Tags:</span>
+								<ul class="task_tags">
+									<li ng-repeat="tag in task.tags" class="task_tag">{{ tag.name }}</li>
+								</ul>
 							</div>
-						<% end %>
+							<p class="task_author">Submitted by {{ task.author }} (<span class="task_timeago"></span>)</p>
+						</div>
 					</div>
 				</div>
-				<a href="/add_task/<%- @room.id %>" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
+				<a href="/add_task/{{ room.id }}" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
 			</div>
 			<div id="messaging_content">
 				<div id="messages">
-					<% for message in @message_list : %>
-						<div class="message" data-message-id="<%- message.id %>" data-message-time="<%- message.time %>" 
-						data-message-author="<%= message.author %>" data-message-reply="<%- message.reply %>" 
-						data-toggle="tooltip" data-placement="left">
-							<a class="reply_link" onclick="initReply(this);"><%= message.author %>:</a>
-							<% if message.reply >= 0 : %>
-								<p>In reply to message <%- message.reply %></p>
-							<% end %>
-							<p><%= message.content %></p>
-						</div>
-					<% end %>
+					<div ng-repeat="message in messages" class="message" data-toggle="tooltip" data-placement="left">
+						<a class="reply_link" onclick="initReply(this);">{{ message.author }}</a>
+						<p ng-show="{{ message.reply >= 0 }}">In reply to message {{ message.reply }}</p>
+						<p>{{ message.content }}</p>
+					</div>
 				</div>
 				<form id="add_message_form"  class="form-inline">
 					<textarea id="input_message" class="form-control" autofocus="true" 
-					data-toggle="popover" placeholder="Hi, <%- @username %>! Say something…">
+					data-toggle="popover" placeholder="Hi, {{ username }}! Say something…">
 					</textarea>
 					<button id="send_message" class="btn btn-primary" type="submit">Send</button>
 				</form>
@@ -132,14 +102,12 @@
 			<div id="sidebar_content">
 				<h4>Channels</h4>
 				<div id="channels">
-					<% for channel in @room.channels : %>
-						<div class="channel">
-							<input id="channel_toggle_<%- channel.id %>" class="channel_toggle" 
-							type="checkbox" data-channel-id="<%- channel.id %>" checked="true">
-							</input>
-							<span class="channel_name"><%= channel.name %></span>
-						</div>
-					<% end %>
+					<div ng-repeat="channel in room.channels" class="channel">
+						<input id="channel_toggle_{{ channel.id }}" class="channel_toggle" 
+						type="checkbox" checked="true">
+						</input>
+						<span class="channel_name">{{ channel.name }}</span>
+					</div>
 				</div>
 				<h4>Members</h4>
 				<div id="members">
