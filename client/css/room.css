@@ -86,10 +86,15 @@
 .task_detail_priority {
 	color: red;
 	display: inline-block;
+	margin-right: 40px;
 }
 
-span.glyphicon {
+.task_detail .glyphicon {
 	color: red;
+}
+
+.task .glyphicon {
+	color: #03ffc1;
 }
 
 .task_title {
@@ -98,6 +103,56 @@ span.glyphicon {
 
 .reply_link {
 	font-weight: bold;
+}
+
+.task_detail_tags_list {
+	display: inline-block;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
+
+.task_preview_tags_list {
+	display: block;
+	margin-top: 2px;
+	margin-bottom: 2px;
+}
+
+.task_tags {
+	display: inline-block;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+.task_detail_tags_list .task_tag {
+	border: 1px solid #03ffc1;
+	background-color: #03ffc1;
+	color: white;
+}
+
+.task_preview_tags_list .task_tag {
+	border: 1px solid #E3E3E3;
+	color: #E3E3E3;
+}
+
+div.task_attachments {
+	text-align: left;
+	margin-bottom: 10px;
+}
+
+a.attachment_link { /* we want default bootstrap link colors for these */
+	color: #428bca;
+	margin-right: 5px;
+}
+
+a:hover.attachment_link { /* we want default bootstrap link colors for these */
+	color: #2a6496;
+}
+
+.task_tag {
+	display: inline;
+	padding: 3px;
+	border-radius: 3px;
 }
 
 .message {
@@ -116,6 +171,15 @@ span.glyphicon {
 
 .message p {
 	display: inline;
+}
+
+.left_arrow {
+	display: inline-block;
+	-moz-transform: scaleX(-1);
+	-webkit-transform: scaleX(-1);
+	-o-transform: scaleX(-1);
+	-ms-transform: scaleX(-1);
+	transform: scaleX(-1);
 }
 
 #add_message_form {

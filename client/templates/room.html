@@ -21,7 +21,7 @@
 			<!-- modal dialog containing task details (starts hidden) -->
 			<div id="task_<%- task.id %>_detail" class="task_detail modal fade" role="dialog" aria-hidden="true" 
 			data-task-id="<%- task.id %>" data-task-time="<%- task.time %>" data-task-high-priority="<%- task.high_priority %>" 
-			data-task-content="<%= task.content %>">
+			data-task-content="<%= task.content %>"  data-task-status="<%- task.status %>">
 				<div class="modal-dialog">
 					<div class="modal-content">
 						<div class="modal-header">
@@ -31,22 +31,44 @@
 								<span class="glyphicon glyphicon-exclamation-sign"></span>
 								<h4 class="task_detail_priority">High Priority</h4>
 							<% end %>
+							<% if task.tags.length > 0 : %>
+								<div class="task_detail_tags_list">
+									<span>Tags:</span>
+									<ul class="task_tags">
+										<% for tag in task.tags : %>
+											<li class="task_tag"><%= tag.name %></li>
+										<% end %>
+									</ul>
+								</div>
+							<% end %>
 							<p class="task_detail_profile">Submitted by <%= task.author %> (<span class="task_time"></span>)</p>
 						</div>
 						<div class="modal-body">
 							<div class="task_content">
 								<p><%= task.content %></p>
 							</div>
-							<div class="task_attachments">
-								<h5>Attachments</h5>
-								<% for attachment in task.attachments : %>
-									<a href="<%- @upload_path %><%- attachment.internal_filename %>"><%- attachment.user_filename %></a>
-								<% end %>
-							</div>
 						</div>
 						<div class="modal-footer">
-							<button type="button" class="task_completed btn btn-primary" data-dismiss="modal"
-							data-task-id="<%- task.id %>">Mark as completed</button>
+							<% if task.attachments.length > 0 : %>
+								<div class="task_attachments">
+									<h5>Attachments</h5>
+									<% for attachment in task.attachments : %>
+										<a class="attachment_link" href="<%- @upload_path %><%- attachment.internal_filename %>"><%- attachment.user_filename %></a>
+									<% end %>
+								</div>
+							<% end %>
+							<% if task.status > 0 : %>
+								<button type="button" class="task_status_retreat btn btn-default">
+									<span class="left_arrow">&#10152;</span>
+									<span>Revert status</span>
+								</button>
+							<% end %>
+							<% if task.status < 2 : %>
+								<button type="button" class="task_status_advance btn btn-primary">
+									<span>Advance status</span>
+									<span>&#10152;</span>
+								</button>
+							<% end %>
 							<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
 						</div>
 					</div>
@@ -62,8 +84,21 @@
 						<% for task in @task_list : %>
 							<!-- task entry in task queue -->
 							<div id="task_<%- task.id %>" class="task" data-task-id="<%- task.id %>" data-task-time="<%- task.time %>" 
-							data-task-high-priority="<%- task.high_priority %>" data-task-content="<%= task.content %>">
+							data-task-high-priority="<%- task.high_priority %>" data-task-content="<%= task.content %>" data-task-status="<%- task.status %>">
+								<% if task.high_priority : %>
+									<span class="glyphicon glyphicon-exclamation-sign"></span>
+								<% end %>
 								<a class="task_title" data-toggle="modal" data-target="#task_<%- task.id %>_detail"><%= task.title %></a>
+								<% if task.tags.length > 0 : %>
+									<div class="task_preview_tags_list">
+										<span>Tags:</span>
+										<ul class="task_tags">
+											<% for tag in task.tags : %>
+												<li class="task_tag"><%= tag.name %></li>
+											<% end %>
+										</ul>
+									</div>
+								<% end %>
 								<p class="task_author">Submitted by <%= task.author %> (<span class="task_timeago"></span>)</p>
 							</div>
 						<% end %>

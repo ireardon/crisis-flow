@@ -128,10 +128,28 @@ io.sockets.on('connection', function(socket) {
 	});
 	
 	// the client emits this whenever the user marks a task as completed
-	socket.on('cts_task_completed', function(taskID) {
-		console.log('RECEIVED task completed');
-		dbops.updateTaskStatus(taskID, config.STATUS_COMPLETED, function() {
-			socket.broadcast.to(socket.room).emit('stc_task_completed', taskID);
+	socket.on('cts_task_status_changed', function(taskID, oldStatus, newStatus) {
+		console.log('RECEIVED task status change');
+		
+		console.log(oldStatus);
+		console.log(newStatus);
+		
+		oldStatus = Number(oldStatus);
+		newStatus = Number(newStatus);
+		
+		console.log(oldStatus);
+		console.log(newStatus);
+		
+		console.log(config.STATUS_MAP);
+		console.log(config.STATUS_MAP[oldStatus]);
+		console.log(config.STATUS_MAP[newStatus]);
+		
+		if(!validStatus(oldStatus) || !validStatus(newStatus)) {
+			console.error('ERROR invalid task status change');
+		}
+		
+		dbops.updateTaskStatus(taskID, oldStatus, newStatus, function() {
+			socket.broadcast.to(socket.room).emit('stc_task_status_changed', taskID, newStatus);
 		});
 	});
 	
@@ -320,7 +338,7 @@ app.post('/add_task/:roomID', function(request, response) {
 	console.log(request.body);
 	var room_id = request.params.roomID;
 	var author = request.session.user.username;
-	var highPriority = Boolean(request.body.high_priority);
+	var highPriority = JSON.parse(request.body.high_priority);
 	var selectedTags = request.body.tags;
 	
 	var files = Object.keys(request.files).map(function(key) {
@@ -449,7 +467,7 @@ app.get('/rooms/:roomID', function(request, response) {
 					'upload_path': config.UPLOAD_PATH
 				};
 				
-				console.log(message_list);
+				console.log(task_list);
 				response.render('room.html', context);
 			});
 		});
@@ -595,21 +613,26 @@ function getAccessRole(access_code_salted_hash, client_salt, server_salt) {
 	return 0;
 }
 
+function validStatus(status) {
+	return config.STATUS_MAP[status];
+}
+
 // callback called with arg which is a list of the tag IDs of both new and preexisting selected tags
 function createNewTags(selectedTags, preexistingTags, callback) {
-	console.log('SELECTED?');
-	console.log(selectedTags);
+	if(!selectedTags) {
+		callback([]);
+		return;
+	}
+
 	if(!(selectedTags instanceof Array)) { // this is necessary because selectedTags may be a singleton
 		selectedTags = [selectedTags];
 	}
-	console.log(selectedTags);
 
 	var newTagNames = [];
 	var oldTagIdentifiers = [];
 	for(var i=0; i<selectedTags.length; i++) {
 		var currentTag = selectedTags[i];
 		var index = preexistingTags.indexOf(Number(currentTag)); // coerce potential ids to numbers
-		console.log(index);
 		
 		if(index === -1) { // this selected tag is not preexisting
 			newTagNames.push(currentTag);
@@ -618,8 +641,6 @@ function createNewTags(selectedTags, preexistingTags, callback) {
 		}
 	}
 	
-	console.log(newTagNames);
-	console.log(oldTagIdentifiers);
 	dbops.createTags(newTagNames, function(newTagIdentifiers) {
 		var selectedTagIdentifiers = oldTagIdentifiers.concat(newTagIdentifiers);
 		callback(selectedTagIdentifiers);

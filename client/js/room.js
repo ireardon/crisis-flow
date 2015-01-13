@@ -116,10 +116,26 @@ $(document).ready(function() {
 		return false;
 	});
 	
-	$('.task_completed').on('click', function() {
-		var task_id = $(this).data('task-id');
-		console.log(task_id);
-		socket.emit('cts_task_completed', task_id);
+	$('.task_status_advance').on('click', function() {
+		var $taskDetail = $(this).closest('.task_detail');
+		var taskID = $taskDetail.data('task-id');
+		var currentStatus = $taskDetail.data('task-status');
+		var newStatus = currentStatus + 1;
+		$taskDetail.data('task-status', newStatus);
+		console.log(taskID);
+		socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
+		console.log('Message emitted!');
+	});
+	
+	$('.task_status_retreat').on('click', function() {
+		var $taskDetail = $(this).closest('.task_detail');
+		var taskID = $taskDetail.data('task-id');
+		var currentStatus = $taskDetail.data('task-status');
+		var newStatus = currentStatus - 1;
+		$taskDetail.data('task-status', newStatus);
+
+		console.log(taskID);
+		socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
 		console.log('Message emitted!');
 	});
 	
