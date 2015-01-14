@@ -88,13 +88,13 @@
 			<div id="messaging_content">
 				<div id="messages">
 					<div ng-repeat="message in messages track by message.id" class="message" data-toggle="tooltip" data-placement="left">
-						<a class="reply_link" ng-click="initReply(message.id)">{{ message.author }}:</a>
-						<p ng-show="message.reply >= 0">In reply to message {{ message.reply }}</p>
+						<a class="reply_forward_link" ng-click="initReply(message.id)">{{ message.author }}:</a>
+						<p class="reply_backward_link" ng-show="message.reply >= 0">(reply to message {{ message.reply }})</p>
 						<p>{{ message.content }}</p>
 					</div>
 				</div>
-				<form id="add_message_form"  class="form-inline">
-					<textarea id="input_message" class="form-control" autofocus="true" 
+				<form id="add_message_form" class="form-inline" ng-submit="addMessage()">
+					<textarea id="input_message" class="form-control" ng-model="inputMessage" ng-keypress="enterInputMessage($event)" autofocus="true" 
 					data-toggle="popover" placeholder="Hi, {{ username }}! Say something…">
 					</textarea>
 					<button id="send_message" class="btn btn-primary" type="submit">Send</button>
@@ -103,15 +103,6 @@
 		</div>
 		<div id="sidebar">
 			<div id="sidebar_content">
-				<h4>Channels</h4>
-				<div id="channels">
-					<div ng-repeat="channel in room.channels track by channel.id" class="channel">
-						<input id="channel_toggle_{{ channel.id }}" class="channel_toggle" 
-						type="checkbox" checked="true">
-						</input>
-						<span class="channel_name">{{ channel.name }}</span>
-					</div>
-				</div>
 				<h4>Members</h4>
 				<div id="members">
 				</div>

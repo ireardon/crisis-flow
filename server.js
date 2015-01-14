@@ -125,6 +125,7 @@ io.sockets.on('connection', function(socket) {
 			message.author = socket.user;
 			message.time = submitTime;
 			
+			socket.emit('stc_message', message);
 			socket.broadcast.to(socket.room).emit('stc_message', message); //emit to 'room' except this socket
 		});
 	});

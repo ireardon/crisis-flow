@@ -1,7 +1,5 @@
 var TYPE_DELAY = 2000;
 var TIME_REFRESH_DELAY = 15000;
-var displayed_messages = 0;
-var room_members = [];
 var members_typing_cooldown = {};
 var members_typing_flag = {};
 var global_roomID, global_username;
@@ -23,6 +21,9 @@ angularApp.controller('ContextController', function($scope) {
 				$scope.tasks = data.tasks;
 				$scope.messages = data.messages;
 				$scope.statusStrings = data.statusMap;
+				$scope.replyTargetMessage = -1;
+				$scope.replyTargetAuthor = -1;
+				
 				$scope.$apply();
 			
 				socket.emit('join', global_roomID, global_username);
@@ -42,10 +43,19 @@ angularApp.controller('ContextController', function($scope) {
 		});
 		
 		socket.on('stc_message', function(newMessage) {
+			console.log(newMessage);
+		
 			removeTypingNote(newMessage.author);
 			$scope.messages.push(newMessage);
 			$scope.$apply();
 		});
+		
+		$scope.enterInputMessage = function($event) {
+			if($event.charCode === 13 && $event.shiftKey === false) { // this was an 'enter' keypress
+				$event.preventDefault();
+				$scope.addMessage();
+			}
+		}; 
 		
 		$scope.initReply = function(messageID) {
 			var message = getEntryByID($scope.messages, messageID);
@@ -57,8 +67,8 @@ angularApp.controller('ContextController', function($scope) {
 		}
 		
 		destroyReply = $scope.destroyReply = function() {
-			$scope.replyTargetMessage = null;
-			$scope.replyTargetAuthor = null;
+			$scope.replyTargetMessage = -1;
+			$scope.replyTargetAuthor = -1;
 			
 			$('#input_message').data('reply-target-author', $scope.replyTargetAuthor);
 			$('#input_message').popover('hide');
@@ -80,6 +90,34 @@ angularApp.controller('ContextController', function($scope) {
 			
 			socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
 			task.status = newStatus;
+		};
+		
+		$scope.addMessage = function() {
+			if(!$scope.inputMessage) {
+				return false;
+			}
+			
+			var messageData = {
+				'room': global_roomID,
+				'author': global_username,
+				'content': $scope.inputMessage,
+				'reply': $scope.replyTargetMessage,
+				'time': getMilliseconds()
+			};
+			
+			socket.emit('cts_message', messageData);
+			console.log('emitting');
+			console.log(messageData);
+			
+			$scope.destroyReply();
+			
+			//$scope.messages.push(messageData);
+			
+			$scope.inputMessage = '';
+			$('#input_message').trigger('autosize.resize'); // necessary to get textarea to resize
+			scrollBottom('#messages');
+			
+			return false;
 		};
 	});
 });
@@ -112,9 +150,8 @@ $(document).ready(function() {
 		}
 	});
 	
-	typing_interval_id = window.setInterval(checkTyping, TYPE_DELAY);
+	//typing_interval_id = window.setInterval(checkTyping, TYPE_DELAY);
 	
-	resetMessageInput();
 	scrollBottom('#messages');
 	scrollBottom('#tasks');
 	renderTimes();
@@ -169,22 +206,6 @@ $(document).ready(function() {
 			$member_entry.empty();
 			$member_entry.append(htmlString);
 		}
-	});
-	
-	$('#add_message_form').submit(function(event) {
-		event.preventDefault();
-		
-		var $input_message = $('#input_message');
-		
-		if(!$input_message.val()) {
-			return false;
-		}
-		
-		sendMessage();
-		
-		resetMessageInput();
-		
-		return false;
 	});
 	
 	$('#input_message').keypress(function(e) {
@@ -245,45 +266,6 @@ $(document).ready(function() {
 		socket.emit('cts_user_active');
 	});
 });
-
-function sendMessage() {
-	var $input_message = $('#input_message');
-
-	var replyTo = $input_message.data('reply-target-message');
-	var content = $input_message.val();
-	
-	var messageData = {
-		'content': content,
-		'reply': replyTo
-	};
-	
-	socket.emit('cts_message', messageData);
-	console.log('emitting');
-	console.log(messageData);
-	
-	destroyReply();
-	
-	displayMessage(global_username, replyTo, content, (new Date().getTime() / 1000));
-}
-
-function resetMessageInput() {
-	var $input_message = $('#input_message');
-	$input_message.val('').trigger('autosize.resize');
-}
-
-function displayMessage(author, replyTo, content, time) {
-	displayed_messages += 1;
-	
-	var htmlString = '<div class="message" data-msg-time="' + time + '">';
-	htmlString += '<strong>' + author + ':</strong> <p>' + content + '</p></div>';
-	$('#messages').append(htmlString);
-	scrollBottom('#messages');
-	
-	while(displayed_messages > 500) { // if there are too many messages to display, start removing old messages
-		$('#messages .message').first().remove();
-		displayed_messages -= 1;
-	}
-}
 
 function checkTyping() {
 	for(var i=0; i<room_members.length; i++) {
@@ -350,7 +332,11 @@ function refreshTimeagos() {
 	$('[data-toggle="tooltip"]').tooltip({animation: false}); // enable bootstrap tooltips
 }
 
-function scrollBottom(element_id) {
-	var $messages = $(element_id);
-	$messages.scrollTop($messages.height()); // there is no scroll bottom, but this should do
+function scrollBottom(elementID) {
+	var $display = $(elementID);
+	$display.scrollTop($display.height() + 1); // there is no scroll bottom, but this should do
+}
+
+function getMilliseconds() {
+	return new Date().getTime() / 1000;
 }
