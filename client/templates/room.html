@@ -70,7 +70,7 @@
 						<div ng-repeat="task in tasks | orderBy:'time':true track by task.id" ng-if="task.status >= 0 && task.status < 2" id="task_{{ task.id }}" 
 						class="task" data-toggle="tooltip" data-placement="right" data-task-time="{{ task.time }}">
 							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
-							<a class="task_title" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>
+							<a class="task_title bold" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>
 							<div class="task_summary">
 								<span class="task_author">From: {{ task.author }}</span>
 								<span class="task_status">Status: {{ statusStrings[task.status] }}</span>
@@ -88,16 +88,17 @@
 			</div>
 			<div id="messaging_content">
 				<div id="messages">
-					<div ng-repeat="message in messages | orderBy:'time':false track by message.id" class="message" data-toggle="tooltip" data-placement="left"
-					data-message-time="{{ message.time }}">
-						<a class="reply_forward_link" ng-click="initReply(message.id)">{{ message.author }}:</a>
-						<p class="reply_backward_link" ng-show="message.reply >= 0">(reply to message {{ message.reply }})</p>
+					<div ng-repeat="message in messages | orderBy:'time':false track by message.id" 
+					class="message" data-toggle="tooltip" data-placement="left" data-message-time="{{ message.time }}">
+						<a class="reply_forward_link bold" ng-click="initReply(message.id)">{{ message.author }}:</a>
+						<p class="reply_backward_link italic" ng-show="message.reply >= 0">(reply to message {{ message.reply }})</p>
 						<p>{{ message.content }}</p>
 					</div>
 				</div>
 				<form id="add_message_form" class="form-inline" ng-submit="addMessage()">
-					<textarea id="input_message" class="form-control" ng-model="inputMessage" ng-keypress="enterInputMessage($event)" autofocus="true" 
-					data-toggle="popover" placeholder="Hi, {{ username }}! Say something…">
+					<textarea id="input_message" class="form-control" ng-model="inputMessage" 
+					ng-keypress="enterInputMessage($event)" autofocus="true" data-toggle="popover" 
+					placeholder="Hi, {{ username }}! Say something…">
 					</textarea>
 					<button id="send_message" class="btn btn-primary" type="submit">Send</button>
 				</form>
@@ -107,6 +108,7 @@
 			<div id="sidebar_content">
 				<h4>Members</h4>
 				<div id="members">
+					<p class="member" ng-repeat="member in members | orderBy:'username' track by member.username">{{ member.username }} <span ng-show="member.idle">(<span class="italic">away</span>)</span></p>
 				</div>
 			</div>
 		</div>

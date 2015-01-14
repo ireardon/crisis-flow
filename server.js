@@ -113,7 +113,9 @@ io.sockets.on('connection', function(socket) {
 		console.error(socket.user);
 		console.log(clientDirectory.getRoom(roomID).channels);
 		
-		broadcastMembership(socket);
+		var clients = clientDirectory.getClientsByRoom(socket.room);
+		
+		socket.broadcast.to(socket.room).emit('membership_change', clients);
 	});
 
 	// the client emits this when they want to send a message
@@ -204,15 +206,17 @@ app.get('/rooms/:roomID/data', function(request, response) {
 	dbops.getRoom(roomID, function(room) {
 		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(messages) {
 			dbops.getOpenTasksForRoom(roomID, function(tasks) {
+				var members = clientDirectory.getClientsByRoom(room.id);
+			
 				var context = {
 					'room': room,
 					'username': username,
+					'members': members,
 					'messages': messages,
 					'tasks': tasks,
 					'statusMap': config.STATUS_MAP
 				};
 				
-				console.log(tasks);
 				response.json(context);
 			});
 		});
@@ -338,8 +342,6 @@ app.post('/add_task/:roomID', function(request, response) {
 		return;
 	}
 	
-	console.log(request.files);
-	console.log(request.body);
 	var roomID = request.params.roomID;
 	var author = request.session.user.username;
 	var highPriority = JSON.parse(request.body.high_priority);
@@ -675,17 +677,4 @@ function getSaltBits() {
 		result += chars.charAt(Math.floor(Math.random() * chars.length));
 
 	return result;
-}
-
-function broadcastMembership(socket) {
-	// fetch all sockets in a room
-	var clients = clientDirectory.getClientsByRoom(socket.room);
-
-	// pull the userIDs out of the socket objects using array.map(...)
-	var usernames = clients.map(function(c) {
-		return c.username;
-	});
-	
-	socket.emit('membership_change', usernames); // the socket that caused this wants the updated list too
-	socket.broadcast.to(socket.room).emit('membership_change', usernames); // everybody else
 }

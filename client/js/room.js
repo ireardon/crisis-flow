@@ -23,6 +23,11 @@ angularApp.controller('ContextController', function($scope) {
 				$scope.statusStrings = data.statusMap;
 				$scope.replyTargetMessage = -1;
 				$scope.replyTargetAuthor = -1;
+				$scope.members = data.members.map(function(name) {
+					return {username: name, idle: false};
+				});
+				$scope.members.push({username: $scope.username, idle: false});
+				console.log($scope.members);
 				
 				$scope.$apply();
 			
@@ -43,6 +48,12 @@ angularApp.controller('ContextController', function($scope) {
 			window.location.href = '/';
 		});
 		
+		socket.on('membership_change', function(members) {
+			$scope.members = members.map(function(name) {
+				return {username: name, idle: false};
+			});
+		});
+		
 		socket.on('stc_add_task', function(newTask) {
 			$scope.tasks.push(newTask);
 			$scope.$apply();
@@ -54,6 +65,22 @@ angularApp.controller('ContextController', function($scope) {
 			removeTypingNote(newMessage.author);
 			$scope.messages.push(newMessage);
 			$scope.$apply();
+		});
+		
+		socket.on('stc_user_idle', function(username) {
+			var member = getUserByUsername($scope.members, username);
+			if(member) {
+				member.idle = true;
+				$scope.$apply();
+			}
+		});
+		
+		socket.on('stc_user_active', function(username) {
+			var member = getUserByUsername($scope.members, username);
+			if(member) {
+				member.idle = false;
+				$scope.$apply();
+			}
 		});
 		
 		$scope.enterInputMessage = function($event) {
@@ -144,6 +171,17 @@ function getEntryByID(list, id) {
 	return entry;
 }
 
+function getUserByUsername(list, username) {
+	var user = false;
+	list.forEach(function(element) {
+		if(element.username === username) {
+			user = element;
+		}
+	});
+	
+	return user;
+}
+
 $(document).ready(function() {
 	global_roomID = document.querySelector('meta[name=room_id]').content;
 	global_username = document.querySelector('meta[name=username]').content;
@@ -163,20 +201,6 @@ $(document).ready(function() {
 	
 	//typing_interval_id = window.setInterval(checkTyping, TYPE_DELAY);
 	
-	socket.on('membership_change', function(members) {
-		room_members = members;
-		$('#members').empty();
-		
-		for(var i=0; i<room_members.length; i++) {
-			var curr_member = room_members[i];
-			members_typing_cooldown[curr_member] = false;
-			members_typing_flag[curr_member] = false;
-			
-			var htmlString = getMemberEntryHTML(curr_member, false);
-			$('#members').append('<p id="member_' + curr_member + '" data-idle="false">' + htmlString + '</p>');
-		}
-	});
-	
 	socket.on('stc_typing', function(username) {
 		if(!members_typing_cooldown[username]) {
 			members_typing_cooldown[username] = true;
@@ -185,30 +209,6 @@ $(document).ready(function() {
 		if(!members_typing_flag[username]) {
 			addTypingNote(username);
 			members_typing_flag[username] = true;
-		}
-	});
-	
-	socket.on('stc_user_idle', function(username) {
-		var $member_entry = $('#member_' + username);
-		var idle = $member_entry.data('idle');
-		
-		if(!idle) {
-			$member_entry.data('idle', true);
-			var htmlString = getMemberEntryHTML(username, true);
-			$member_entry.empty();
-			$member_entry.append(htmlString);
-		}
-	});
-	
-	socket.on('stc_user_active', function(username) {
-		var $member_entry = $('#member_' + username);
-		var idle = $member_entry.data('idle');
-		
-		if(idle) {
-			$member_entry.data('idle', false);
-			var htmlString = getMemberEntryHTML(username, false);
-			$member_entry.empty();
-			$member_entry.append(htmlString);
 		}
 	});
 	
@@ -273,36 +273,6 @@ function checkTyping() {
 			removeTypingNote(curr_member);
 		}
 	}
-}
-
-function addTypingNote(username) {
-	var htmlString = '<div class="message typing_notification" id="' + username + '_typing_notification" data-msg-time="' + -1 + '">';
-	htmlString += '<p>' + username + ' is typing...</p></div>';
-	$('#messages').append(htmlString);
-	
-	scrollBottom('#messages');
-}
-
-function removeTypingNote(username) {
-	if(members_typing_flag[username]) {
-		var note_id = '#' + username + '_typing_notification';
-		$(note_id).remove();
-		members_typing_flag[username] = false;
-		
-		scrollBottom('#messages');
-	}
-}
-
-function getMemberEntryHTML(username, idle) {
-	var htmlString = '';
-	var idleContent = '';
-	if(idle) {
-		idleContent = ' (idle)';
-	}
-	
-	htmlString = '<a class="member" data-member="' + username + '" href="#">' + username + idleContent + '</a>';
-	
-	return htmlString;
 }
 
 function refreshTimeagos() {

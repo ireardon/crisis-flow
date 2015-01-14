@@ -118,20 +118,8 @@
 	color: #03ffc1;
 }
 
-.task_title {
-	font-weight: bold;
-}
-
 .task_summary {
 	margin-top: 3px;
-}
-
-.reply_forward_link {
-	font-weight: bold;
-}
-
-.reply_backward_link {
-	font-style: italic;
 }
 
 .task_detail_tags_list {
