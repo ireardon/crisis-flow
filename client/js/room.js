@@ -7,9 +7,9 @@ var members_typing_flag = {};
 var global_roomID, global_username;
 var typing_interval_id = -1;
 var time_refresh_interval = -1;
+var destroyReply;
 
 var angularApp = angular.module('room', []);
-
 
 angularApp.controller('ContextController', function($scope) {
 	angular.element(document).ready(function() {
@@ -52,15 +52,15 @@ angularApp.controller('ContextController', function($scope) {
 			$scope.replyTargetMessage = messageID;
 			$scope.replyTargetAuthor = message.author;
 			
-			$('#input_message').popover('show').on('shown.bs.popover', function() {
-				$scope.$apply();
-			});
+			$('#input_message').data('reply-target-author', $scope.replyTargetAuthor);
+			$('#input_message').popover('show');
 		}
 		
-		$scope.destroyReply = function() {
+		destroyReply = $scope.destroyReply = function() {
 			$scope.replyTargetMessage = null;
 			$scope.replyTargetAuthor = null;
 			
+			$('#input_message').data('reply-target-author', $scope.replyTargetAuthor);
 			$('#input_message').popover('hide');
 		}
 		
@@ -105,8 +105,9 @@ $(document).ready(function() {
 		placement: 'left',
 		trigger: 'manual',
 		content: function() {
-			var htmlString = '<span id="reply_popover_content">Replying to {{ replyTargetAuthor }}</span>' + 
-							'<button id="close_reply_popover" ng-click="destroyReply()" type="button" class="close">&times;</button>';
+			var replyTargetAuthor = $('#input_message').data('reply-target-author');
+			var htmlString = '<span id="reply_popover_content">Replying to ' + replyTargetAuthor + '</span>' + 
+							'<button id="close_reply_popover" onclick="destroyReply()" type="button" class="close">&times;</button>';
 			return htmlString;
 		}
 	});
