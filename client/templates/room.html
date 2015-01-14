@@ -33,7 +33,7 @@
 										<li ng-repeat="tag in task.tags track by tag.id" class="task_tag">{{ tag.name }}</li>
 								</ul>
 							</div>
-							<p class="task_detail_profile">Submitted by {{ task.author }} (<span class="task_time"></span>)</p>
+							<p class="task_detail_profile">Submitted by {{ task.author }} (<span class="task_time">{{ formatTaskTime(task.id) }}</span>)</p>
 						</div>
 						<div class="modal-body">
 							<div class="task_content">
@@ -67,7 +67,8 @@
 				<div id="tasks">
 					<div id="task_wrapper">
 						<!-- task entry in task queue -->
-						<div ng-repeat="task in tasks track by task.id" ng-if="task.status >= 0 && task.status < 2" id="task_{{ task.id }}" class="task">
+						<div ng-repeat="task in tasks | orderBy:'time':true track by task.id" ng-if="task.status >= 0 && task.status < 2" id="task_{{ task.id }}" 
+						class="task" data-toggle="tooltip" data-placement="right" data-task-time="{{ task.time }}">
 							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
 							<a class="task_title" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>
 							<div class="task_summary">
@@ -87,7 +88,8 @@
 			</div>
 			<div id="messaging_content">
 				<div id="messages">
-					<div ng-repeat="message in messages track by message.id" class="message" data-toggle="tooltip" data-placement="left">
+					<div ng-repeat="message in messages | orderBy:'time':false track by message.id" class="message" data-toggle="tooltip" data-placement="left"
+					data-message-time="{{ message.time }}">
 						<a class="reply_forward_link" ng-click="initReply(message.id)">{{ message.author }}:</a>
 						<p class="reply_backward_link" ng-show="message.reply >= 0">(reply to message {{ message.reply }})</p>
 						<p>{{ message.content }}</p>

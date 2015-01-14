@@ -26,7 +26,13 @@ angularApp.controller('ContextController', function($scope) {
 				
 				$scope.$apply();
 			
-				socket.emit('join', global_roomID, global_username);
+				socket.emit('join', $scope.room.id, $scope.username);
+				
+				scrollBottom('#messages');
+				scrollBottom('#tasks');
+				refreshTimeagos();
+				
+				time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
 			}
 		});
 		
@@ -74,6 +80,12 @@ angularApp.controller('ContextController', function($scope) {
 			$('#input_message').popover('hide');
 		}
 		
+		$scope.formatTaskTime = function(taskID) {
+			var task = getEntryByID($scope.tasks, taskID);
+			var niceTime = moment.unix(task.time).format('h:mma [on] MMM D, YYYY');
+			return niceTime;
+		};
+		
 		$scope.advanceTaskStatus = function(taskID) {
 			var task = getEntryByID($scope.tasks, taskID);
 			var currentStatus = task.status;
@@ -101,8 +113,7 @@ angularApp.controller('ContextController', function($scope) {
 				'room': global_roomID,
 				'author': global_username,
 				'content': $scope.inputMessage,
-				'reply': $scope.replyTargetMessage,
-				'time': getMilliseconds()
+				'reply': $scope.replyTargetMessage
 			};
 			
 			socket.emit('cts_message', messageData);
@@ -111,7 +122,7 @@ angularApp.controller('ContextController', function($scope) {
 			
 			$scope.destroyReply();
 			
-			//$scope.messages.push(messageData);
+			// $scope.messages.push(messageData); // TODO do we use a temporary?
 			
 			$scope.inputMessage = '';
 			$('#input_message').trigger('autosize.resize'); // necessary to get textarea to resize
@@ -151,13 +162,6 @@ $(document).ready(function() {
 	});
 	
 	//typing_interval_id = window.setInterval(checkTyping, TYPE_DELAY);
-	
-	scrollBottom('#messages');
-	scrollBottom('#tasks');
-	renderTimes();
-	refreshTimeagos();
-	
-	time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
 	
 	socket.on('membership_change', function(members) {
 		room_members = members;
@@ -205,13 +209,6 @@ $(document).ready(function() {
 			var htmlString = getMemberEntryHTML(username, false);
 			$member_entry.empty();
 			$member_entry.append(htmlString);
-		}
-	});
-	
-	$('#input_message').keypress(function(e) {
-		if(e.which != 13) {
-			var new_message_content = $('#input_message').val();
-			socket.emit('cts_typing');
 		}
 	});
 	
@@ -308,28 +305,20 @@ function getMemberEntryHTML(username, idle) {
 	return htmlString;
 }
 
-function renderTimes() {
-	$('.task_detail').each(function(i, element) {
-		var $task = $(element);
-		var nice_time = moment.unix($task.data('task-time')).format('h:mma [on] MMM D, YYYY');
-		$task.find('.task_time').text(nice_time);
-	});
-}
-
 function refreshTimeagos() {
 	$('.task').each(function(i, element) {
 		var $task = $(element);
-		var nice_time = moment.unix($task.data('task-time')).fromNow();
-		$task.find('.task_timeago').text(nice_time);
+		var niceTime = moment.unix($task.data('task-time')).fromNow();
+		$task.attr('title', niceTime);
 	});
 	
 	$('.message').each(function(i, element) {
 		var $message = $(element);
-		var nice_time = moment.unix($message.data('message-time')).fromNow();
-		$message.attr('title', nice_time);
+		var niceTime = moment.unix($message.data('message-time')).fromNow();
+		$message.attr('title', niceTime);
 	});
 	
-	$('[data-toggle="tooltip"]').tooltip({animation: false}); // enable bootstrap tooltips
+	$('[data-toggle="tooltip"]').tooltip({animation: false, container: 'body'}); // enable bootstrap tooltips
 }
 
 function scrollBottom(elementID) {
