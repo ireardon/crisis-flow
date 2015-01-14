@@ -11,6 +11,10 @@ var angularApp = angular.module('room', []);
 
 angularApp.controller('ContextController', function($scope) {
 	angular.element(document).ready(function() {
+		// these two variables are embedded in meta tags by server templating
+		global_roomID = document.querySelector('meta[name=room_id]').content;
+		global_username = document.querySelector('meta[name=username]').content;
+	
 		jQuery.ajax({
 			type: 'GET',
 			url: '/rooms/' + global_roomID + '/data',
@@ -27,61 +31,20 @@ angularApp.controller('ContextController', function($scope) {
 					return {username: name, idle: false};
 				});
 				$scope.members.push({username: $scope.username, idle: false});
-				console.log($scope.members);
 				
 				$scope.$apply();
 			
 				socket.emit('join', $scope.room.id, $scope.username);
 				
-				scrollBottom('#messages');
-				scrollBottom('#tasks');
-				refreshTimeagos();
-				
-				time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
+				initializePage();
 			}
 		});
 		
-		socket.on('error', function(message) { // message is an event object for some reason, not a string
-			console.error(message);
-			console.error('Error: Web socket disconnected');
-			alert('Error: Web socket disconnected: ' + message);
-			window.location.href = '/';
-		});
-		
-		socket.on('membership_change', function(members) {
-			$scope.members = members.map(function(name) {
-				return {username: name, idle: false};
-			});
-		});
-		
-		socket.on('stc_add_task', function(newTask) {
-			$scope.tasks.push(newTask);
-			$scope.$apply();
-		});
-		
-		socket.on('stc_message', function(newMessage) {
-			console.log(newMessage);
-		
-			removeTypingNote(newMessage.author);
-			$scope.messages.push(newMessage);
-			$scope.$apply();
-		});
-		
-		socket.on('stc_user_idle', function(username) {
-			var member = getUserByUsername($scope.members, username);
-			if(member) {
-				member.idle = true;
-				$scope.$apply();
-			}
-		});
-		
-		socket.on('stc_user_active', function(username) {
-			var member = getUserByUsername($scope.members, username);
-			if(member) {
-				member.idle = false;
-				$scope.$apply();
-			}
-		});
+		/*###################################
+		  #        ANGULAR FUNCTIONS        #
+		  ###################################*/
+		// these functions, attached to the controller's $scope, are invoked by Angular
+		// directives in the HTML
 		
 		$scope.enterInputMessage = function($event) {
 			if($event.charCode === 13 && $event.shiftKey === false) { // this was an 'enter' keypress
@@ -157,9 +120,140 @@ angularApp.controller('ContextController', function($scope) {
 			
 			return false;
 		};
+		
+		/*###################################
+		  #        SOCKET.IO HANDLERS       #
+		  ###################################*/
+		// these functions respond to websocket messages received from the server
+		
+		socket.on('error', function(message) { // message is an event object for some reason, not a string
+			console.error(message);
+			console.error('Error: Web socket disconnected');
+			alert('Error: Web socket disconnected: ' + message);
+			window.location.href = '/';
+		});
+		
+		socket.on('membership_change', function(members) {
+			$scope.members = members.map(function(name) {
+				return {username: name, idle: false};
+			});
+		});
+		
+		socket.on('stc_add_task', function(newTask) {
+			$scope.tasks.push(newTask);
+			$scope.$apply();
+		});
+		
+		socket.on('stc_message', function(newMessage) {
+			console.log(newMessage);
+			
+			$scope.messages.push(newMessage);
+			$scope.$apply();
+		});
+		
+		socket.on('stc_user_idle', function(username) {
+			var member = getUserByUsername($scope.members, username);
+			if(member) {
+				member.idle = true;
+				$scope.$apply();
+			}
+		});
+		
+		socket.on('stc_user_active', function(username) {
+			var member = getUserByUsername($scope.members, username);
+			if(member) {
+				member.idle = false;
+				$scope.$apply();
+			}
+		});
+		
+		socket.on('stc_typing', function(username) {
+			/*
+			if(!members_typing_cooldown[username]) {
+				members_typing_cooldown[username] = true;
+			}
+			
+			if(!members_typing_flag[username]) {
+				addTypingNote(username);
+				members_typing_flag[username] = true;
+			}
+			*/
+		});
+		
+		/*###################################
+		  #         jQUERY HANDLERS         #
+		  ###################################*/
+		// these are to handle more complex DOM behavior Angular isn't well suited to
+		
+		// user has switched away from current tab
+		$(window).blur(function() {
+			socket.emit('cts_user_idle');
+		});
+		
+		// user has switched back to current tab
+		$(window).focus(function() {
+			socket.emit('cts_user_active');
+		});
+		
+		$('#sidebar').mouseenter(function() {
+		var $this = $(this);
+		
+		$('#sidebar_content').stop(false, true).show({
+				'effect': 'fade',
+				'duration': 300,
+				'queue': false
+			});
+			$this.stop().animate({ // properties
+				'width': '200px'
+			}, { // options
+				'duration': 400,
+				'queue': false
+			});
+		});
+		
+		$('#sidebar').mouseleave(function() {
+			var $this = $(this);
+			
+			$('#sidebar_content').stop(false, true).hide({
+				'effect': 'fade',
+				'duration': 300,
+				'queue': false
+			});
+			$this.stop().animate({ // properties
+				'width': '25px'
+			}, { // options
+				'duration': 400
+			});
+		});
 	});
 });
 
+/*###################################
+  #        SUPPORT FUNCTIONS        #
+  ###################################*/
+
+// some initialization actions that occur only once when the page is loaded
+function initializePage() {
+	$('#input_message').autosize();
+	$('#input_message').popover({
+		html: true,
+		placement: 'left',
+		trigger: 'manual',
+		content: function() {
+			var replyTargetAuthor = $('#input_message').data('reply-target-author');
+			var htmlString = '<span id="reply_popover_content">Replying to ' + replyTargetAuthor + '</span>' + 
+							'<button id="close_reply_popover" onclick="destroyReply()" type="button" class="close">&times;</button>';
+			return htmlString;
+		}
+	});
+	
+	scrollBottom('#messages');
+	scrollBottom('#tasks');
+	
+	refreshTimeagos();
+	time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
+}
+  
 function getEntryByID(list, id) {
 	var entry = false;
 	list.forEach(function(element) {
@@ -180,99 +274,6 @@ function getUserByUsername(list, username) {
 	});
 	
 	return user;
-}
-
-$(document).ready(function() {
-	global_roomID = document.querySelector('meta[name=room_id]').content;
-	global_username = document.querySelector('meta[name=username]').content;
-	
-	$('#input_message').autosize();
-	$('#input_message').popover({
-		html: true,
-		placement: 'left',
-		trigger: 'manual',
-		content: function() {
-			var replyTargetAuthor = $('#input_message').data('reply-target-author');
-			var htmlString = '<span id="reply_popover_content">Replying to ' + replyTargetAuthor + '</span>' + 
-							'<button id="close_reply_popover" onclick="destroyReply()" type="button" class="close">&times;</button>';
-			return htmlString;
-		}
-	});
-	
-	//typing_interval_id = window.setInterval(checkTyping, TYPE_DELAY);
-	
-	socket.on('stc_typing', function(username) {
-		if(!members_typing_cooldown[username]) {
-			members_typing_cooldown[username] = true;
-		}
-		
-		if(!members_typing_flag[username]) {
-			addTypingNote(username);
-			members_typing_flag[username] = true;
-		}
-	});
-	
-	$('#sidebar').mouseenter(function() {
-		var $this = $(this);
-		
-		$('#sidebar_content').stop(false, true).show({
-			'effect': 'fade',
-			'duration': 300,
-			'queue': false
-		});
-		$this.stop().animate({ // properties
-			'width': '200px'
-		}, { // options
-			'duration': 400,
-			'queue': false
-		});
-	});
-	
-	$('#sidebar').mouseleave(function() {
-		var $this = $(this);
-		
-		$('#sidebar_content').stop(false, true).hide({
-			'effect': 'fade',
-			'duration': 300,
-			'queue': false
-		});
-		$this.stop().animate({ // properties
-			'width': '25px'
-		}, { // options
-			'duration': 400
-		});
-	});
-
-	$('.channel_toggle').on('click', function() {
-		var sockEvent = 'cts_leave_channel';
-		if(this.checked) {
-			sockEvent = 'cts_join_channel';
-		}
-		
-		var channelID = $(this).data('channel-id');
-		socket.emit(sockEvent, channelID);
-	});
-	
-	// user has switched away from current tab
-	$(window).blur(function() {
-		socket.emit('cts_user_idle');
-	});
-	
-	// user has switched back to current tab
-	$(window).focus(function() {
-		socket.emit('cts_user_active');
-	});
-});
-
-function checkTyping() {
-	for(var i=0; i<room_members.length; i++) {
-		var curr_member = room_members[i];
-		if(members_typing_cooldown[curr_member]) {
-			members_typing_cooldown[curr_member] = false;
-		} else {
-			removeTypingNote(curr_member);
-		}
-	}
 }
 
 function refreshTimeagos() {
@@ -296,6 +297,6 @@ function scrollBottom(elementID) {
 	$display.scrollTop($display.height() + 1); // there is no scroll bottom, but this should do
 }
 
-function getMilliseconds() {
+function getMillisecondTime() {
 	return new Date().getTime() / 1000;
 }
