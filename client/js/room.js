@@ -10,11 +10,11 @@ var time_refresh_interval = -1;
 
 var angularApp = angular.module('room', []);
 
-angularApp.controller('ContextController', function($scope) {
-	console.log(this);
 
+angularApp.controller('ContextController', function($scope) {
 	angular.element(document).ready(function() {
 		jQuery.ajax({
+			type: 'GET',
 			url: '/rooms/' + global_roomID + '/data',
 			dataType: 'json',
 			success: function(data) {
@@ -29,6 +29,13 @@ angularApp.controller('ContextController', function($scope) {
 			}
 		});
 		
+		socket.on('error', function(message) { // message is an event object for some reason, not a string
+			console.error(message);
+			console.error('Error: Web socket disconnected');
+			alert('Error: Web socket disconnected: ' + message);
+			window.location.href = '/';
+		});
+		
 		socket.on('stc_add_task', function(newTask) {
 			$scope.tasks.push(newTask);
 			$scope.$apply();
@@ -40,26 +47,39 @@ angularApp.controller('ContextController', function($scope) {
 			$scope.$apply();
 		});
 		
+		$scope.initReply = function(messageID) {
+			var message = getEntryByID($scope.messages, messageID);
+			$scope.replyTargetMessage = messageID;
+			$scope.replyTargetAuthor = message.author;
+			
+			$('#input_message').popover('show').on('shown.bs.popover', function() {
+				$scope.$apply();
+			});
+		}
+		
+		$scope.destroyReply = function() {
+			$scope.replyTargetMessage = null;
+			$scope.replyTargetAuthor = null;
+			
+			$('#input_message').popover('hide');
+		}
+		
 		$scope.advanceTaskStatus = function(taskID) {
 			var task = getEntryByID($scope.tasks, taskID);
 			var currentStatus = task.status;
 			var newStatus = currentStatus + 1;
-			console.log('advance ' + taskID);
-			console.log('newStatus ' + newStatus);
+			
 			socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
 			task.status = newStatus;
-			console.log('Message emitted!');
 		};
 		
 		$scope.retreatTaskStatus = function(taskID) {
 			var task = getEntryByID($scope.tasks, taskID);
 			var currentStatus = task.status;
 			var newStatus = currentStatus - 1;
-			console.log('advance ' + taskID);
-			console.log('newStatus ' + newStatus);
+			
 			socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
 			task.status = newStatus;
-			console.log('Message emitted!');
 		};
 	});
 });
@@ -85,9 +105,8 @@ $(document).ready(function() {
 		placement: 'left',
 		trigger: 'manual',
 		content: function() {
-			var replyTargetAuthor = $(this).data('reply-target-author');
-			var htmlString = '<span>Replying to ' + replyTargetAuthor + '</span>' + 
-							'<button id="close_reply_popover" onclick="destroyReply();" type="button" class="close">&times;</button>';
+			var htmlString = '<span id="reply_popover_content">Replying to {{ replyTargetAuthor }}</span>' + 
+							'<button id="close_reply_popover" ng-click="destroyReply()" type="button" class="close">&times;</button>';
 			return htmlString;
 		}
 	});
@@ -101,13 +120,6 @@ $(document).ready(function() {
 	refreshTimeagos();
 	
 	time_refresh_interval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);
-
-	socket.on('error', function(message) { // message is an event object for some reason, not a string
-		console.error(message);
-		console.error('Error: Web socket disconnected');
-		alert('Error: Web socket disconnected: ' + message);
-		window.location.href = '/';
-	});
 	
 	socket.on('membership_change', function(members) {
 		room_members = members;
@@ -251,24 +263,6 @@ function sendMessage() {
 	destroyReply();
 	
 	displayMessage(global_username, replyTo, content, (new Date().getTime() / 1000));
-}
-
-function initReply(messageLink) {
-	var $message = $(messageLink).parent();
-	var replyTargetMessage = $message.data('message-id');
-	var replyTargetAuthor = $message.data('message-author');
-	
-	var $input_message = $('#input_message');
-	$input_message.data('reply-target-message', replyTargetMessage);
-	$input_message.data('reply-target-author', replyTargetAuthor);
-	$input_message.popover('show');
-}
-
-function destroyReply() {
-	var $input_message = $('#input_message');
-	$input_message.data('reply-target-message', null);
-	$input_message.data('reply-target-author', null);
-	$input_message.popover('hide');
 }
 
 function resetMessageInput() {

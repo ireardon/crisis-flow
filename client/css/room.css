@@ -74,6 +74,27 @@
 	color: black;
 }
 
+.popover {
+	background-color: #141313;
+}
+
+.popover.left>.arrow:after {
+	border-left-color: #141313;
+}
+
+#close_reply_popover {
+	color: #E3E3E3;
+	opacity: 0.7;
+}
+
+#close_reply_popover:hover {
+	opacity: 1;
+}
+
+#reply_popover_content {
+	margin-right: 5px;
+}
+
 .task {
 	margin-bottom: 2px;
 	padding: 5px 11px;

@@ -88,7 +88,7 @@
 			<div id="messaging_content">
 				<div id="messages">
 					<div ng-repeat="message in messages track by message.id" class="message" data-toggle="tooltip" data-placement="left">
-						<a class="reply_link" onclick="initReply(this);">{{ message.author }}:</a>
+						<a class="reply_link" ng-click="initReply(message.id)">{{ message.author }}:</a>
 						<p ng-show="message.reply >= 0">In reply to message {{ message.reply }}</p>
 						<p>{{ message.content }}</p>
 					</div>
