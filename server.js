@@ -493,6 +493,7 @@ app.get('/add_task/:roomID', function(request, response) {
 	
 	dbops.getAllTags(function(tags) {
 		var context = {
+			'username': request.session.user.username,
 			'room_id': request.params.roomID,
 			'tags': tags
 		};
@@ -513,6 +514,7 @@ app.get('/manage_rooms', function(request, response) {
 		console.log(roomsList);
 	
 		var context = {
+			'username': request.session.user.username,
 			'room_list': roomsList
 		};
 		response.render('manage_rooms.html', context);
@@ -536,6 +538,7 @@ app.get('/index', function(request, response) {
 		});
 	
 		var context = {
+			'username': request.session.user.username,
 			'room_list': roomsList
 		};
 		response.render('index.html', context);
