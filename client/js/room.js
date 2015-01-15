@@ -1,5 +1,5 @@
 var TYPE_DELAY = 2000;
-var TIME_REFRESH_DELAY = 15000;
+var TIME_REFRESH_DELAY = 5000;
 var members_typing_cooldown = {};
 var members_typing_flag = {};
 var global_roomID, global_username;
@@ -119,6 +119,23 @@ angularApp.controller('ContextController', function($scope) {
 			scrollBottom('#messages');
 			
 			return false;
+		};
+		
+		$scope.jumpToReplyTarget = function(replyTargetID) {
+			var $targetElement = $('#message_' + replyTargetID);
+			var messagesScrollPosition = $('#messages').scrollTop();
+			var targetElementTop = $targetElement.position().top;
+			
+			var newScrollPosition = messagesScrollPosition - targetElementTop;
+			
+			$('#messages').animate({
+				scrollTop: newScrollPosition
+			}, {
+				duration: 400, 
+				complete: function() {
+					
+				}
+			});
 		};
 		
 		/*###################################
@@ -290,6 +307,7 @@ function refreshTimeagos() {
 	});
 	
 	$('[data-toggle="tooltip"]').tooltip({animation: false, container: 'body'}); // enable bootstrap tooltips
+	$('[title]').removeAttr('title'); // prevent browser-default tooltips from displaying
 }
 
 function scrollBottom(elementID) {
