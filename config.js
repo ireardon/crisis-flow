@@ -31,7 +31,7 @@ STATUS_MAP[STATUS_CANCELLED] = 'Cancelled';
 
 // the default number of most recent messages to display in a room
 // if the user elects to view the message archive for a room, all messages are displayed
-var DEFAULT_MESSAGE_COUNT = 50;
+var DEFAULT_MESSAGE_COUNT = 100;
 
 module.exports = {
 	'COOKIE_SIGN_SECRET': COOKIE_SIGN_SECRET,

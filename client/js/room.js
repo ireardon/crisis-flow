@@ -9,7 +9,7 @@ var destroyReply;
 
 var angularApp = angular.module('room', []);
 
-angularApp.controller('ContextController', function($scope) {
+angularApp.controller('ContextController', ['$scope', function($scope) {
 	angular.element(document).ready(function() {
 		// these two variables are embedded in meta tags by server templating
 		global_roomID = document.querySelector('meta[name=room_id]').content;
@@ -116,24 +116,37 @@ angularApp.controller('ContextController', function($scope) {
 			
 			$scope.inputMessage = '';
 			$('#input_message').trigger('autosize.resize'); // necessary to get textarea to resize
-			scrollBottom('#messages');
 			
 			return false;
 		};
 		
 		$scope.jumpToReplyTarget = function(replyTargetID) {
+			var extra = 10; // scroll slightly above the actual top of the message
+			
+			var $messages = $('#messages');
 			var $targetElement = $('#message_' + replyTargetID);
-			var messagesScrollPosition = $('#messages').scrollTop();
+			var messagesScrollPosition = $messages.scrollTop();
 			var targetElementTop = $targetElement.position().top;
+			var messagesTop = $messages.offset().top;
 			
-			var newScrollPosition = messagesScrollPosition - targetElementTop;
+			var topDifference = messagesTop - targetElementTop;
+			var newScrollPosition = messagesScrollPosition - topDifference - extra;
 			
-			$('#messages').animate({
-				scrollTop: newScrollPosition
-			}, {
+			$messages.animate({ scrollTop: newScrollPosition }, { // scroll message window to reply target
 				duration: 400, 
-				complete: function() {
-					
+				complete: function() { // animate a growing box shadow to indicate which message is the target
+					$targetElement.css('box-shadow', 'inset 0 0 9px 0 #03ffc1');
+					$targetElement.animate({ boxShadow: 'inset 0 0 9px 6px #03ffc1' }, {
+						duration: 500, 
+						complete: function() { // animate the shrinking of the box shadow
+							$targetElement.animate({ boxShadow: 'inset 0 0 9px 0 #03ffc1' }, {
+								duration: 500,
+								complete: function() { // remove the box shadow after the animation completes
+									$targetElement.css('box-shadow', 'none');
+								}
+							});
+						}
+					});
 				}
 			});
 		};
@@ -159,13 +172,20 @@ angularApp.controller('ContextController', function($scope) {
 		socket.on('stc_add_task', function(newTask) {
 			$scope.tasks.push(newTask);
 			$scope.$apply();
+			
+			scrollBottom('#tasks');
 		});
 		
 		socket.on('stc_message', function(newMessage) {
 			console.log(newMessage);
 			
 			$scope.messages.push(newMessage);
+			var atBottom = scrolledToBottom('#messages');
 			$scope.$apply();
+			
+			if(atBottom) {
+				scrollBottom('#messages');
+			}
 		});
 		
 		socket.on('stc_user_idle', function(username) {
@@ -243,7 +263,7 @@ angularApp.controller('ContextController', function($scope) {
 			});
 		});
 	});
-});
+}]);
 
 /*###################################
   #        SUPPORT FUNCTIONS        #
@@ -310,9 +330,17 @@ function refreshTimeagos() {
 	$('[title]').removeAttr('title'); // prevent browser-default tooltips from displaying
 }
 
+function scrolledToBottom(elementID) {
+	var element = $(elementID).get(0);
+	return (element.scrollHeight - element.scrollTop) <= (element.clientHeight + 20);
+}
+
 function scrollBottom(elementID) {
 	var $display = $(elementID);
-	$display.scrollTop($display.height() + 1); // there is no scroll bottom, but this should do
+	// there is no scroll bottom, but this should do
+	// we must use the DOM scrollHeight attribute, as the height
+	// attribute accessible through jQuery measures only the visible portion
+	$display.scrollTop($display.get(0).scrollHeight + 1);
 }
 
 function getMillisecondTime() {

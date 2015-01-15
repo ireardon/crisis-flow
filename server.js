@@ -208,6 +208,8 @@ app.get('/rooms/:roomID/data', function(request, response) {
 			dbops.getOpenTasksForRoom(roomID, function(tasks) {
 				var members = clientDirectory.getClientsByRoom(room.id);
 			
+				console.log(messages);
+			
 				var context = {
 					'room': room,
 					'username': username,
