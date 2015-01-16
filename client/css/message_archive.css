@@ -1,0 +1,37 @@
+#messages {
+	background-color: rgba(255, 255, 255, 0.1);
+	-moz-box-shadow: 1px 1px 3px 3px #141313;
+	-webkit-box-shadow: 1px 1px 3px 3px #141313;
+	box-shadow: 1px 1px 3px 3px #141313;
+	padding: 10px;
+	margin: 20px auto;
+	height: 450px;
+	overflow: auto;
+}
+
+#messaging_content {
+	margin: auto;
+	display: block;
+	width: 60%;
+}
+
+.message {
+	margin-bottom: 2px;
+	padding: 2px 11px;
+	border: 1px solid #141313;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+	border-radius: 3px;
+}
+
+.message p {
+	display: inline;
+}
+
+.row {
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 20px;
+	display: block;
+	width: 130px;
+}

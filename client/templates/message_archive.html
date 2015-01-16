@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html ng-app="room">
+	<head>
+		<% include "common_includes.html" %>
+		<script type="text/javascript" src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.6.0/moment.min.js" charset="utf-8"></script>
+		<script type="text/javascript" src="/autosize/jquery.autosize.min.js"></script>
+		<script type="text/javascript" src="/animate-shadow/jquery.animate-shadow.min.js"></script>
+		<script type="text/javascript" src="/js/message_archive.js" charset="utf-8"></script>
+		<link rel="stylesheet" type="text/css" href="/css/message_archive.css"></link>
+		<title id="page_title"><%= @room.name %> Archive | Crisis Flow</title>
+		
+		<meta name="room_id" content="<%- @room.id %>"/>
+		<meta name="username" content="<%- @username %>"/>
+		
+		<script src="/socket.io/socket.io.js"></script>
+		<script type="text/javascript">
+			var socket = io.connect();
+		</script>
+	</head>
+	<body ng-controller="ContextController">
+		<% include "navbar.html" %>
+		<div id="body_content">
+			<h2>{{ room.name }} - Message Archive</h2>
+			<div id="messaging_content">
+				<div id="messages">
+					<div ng-repeat="message in messages | orderBy:'time':false track by message.id" id="message_{{ message.id }}"
+					class="message" data-toggle="tooltip" data-placement="left" data-message-time="{{ message.time }}">
+						<a class="reply_forward_link bold" ng-click="initReply(message.id)">{{ message.author }}:</a>
+						<p class="reply_backward_link" ng-show="message.reply >= 0">(<a ng-click="jumpToReplyTarget(message.reply)" class="italic">reply to {{ message.author }}</a>)</p>
+						<p>{{ message.content }}</p>
+					</div>
+				</div>
+			</div>
+			<a href="/rooms/<%- @room.id %>" class="btn btn-default row">Return to room</a>
+		</div>
+	</body>
+</html>

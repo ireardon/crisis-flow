@@ -1,11 +1,6 @@
-var TYPE_DELAY = 2000;
 var TIME_REFRESH_DELAY = 15000;
-var members_typing_cooldown = {};
-var members_typing_flag = {};
 var global_roomID, global_username;
-var typing_interval_id = -1;
 var timeRefreshInterval = -1;
-var destroyReply;
 
 var angularApp = angular.module('room', []);
 
@@ -17,20 +12,12 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 	
 		jQuery.ajax({
 			type: 'GET',
-			url: '/rooms/' + global_roomID + '/data.json',
+			url: '/rooms/' + global_roomID + '/archive/messages.json',
 			dataType: 'json',
 			success: function(data) {
 				$scope.username = data.username;
 				$scope.room = data.room;
-				$scope.tasks = data.tasks;
 				$scope.messages = data.messages;
-				$scope.statusStrings = data.statusMap;
-				$scope.replyTargetMessage = -1;
-				$scope.replyTargetAuthor = -1;
-				$scope.members = data.members.map(function(name) {
-					return {username: name, idle: false};
-				});
-				$scope.members.push({username: $scope.username, idle: false});
 				
 				$scope.$apply();
 			
@@ -45,80 +32,6 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		  ###################################*/
 		// these functions, attached to the controller's $scope, are invoked by Angular
 		// directives in the HTML
-		
-		$scope.enterInputMessage = function($event) {
-			if($event.charCode === 13 && $event.shiftKey === false) { // this was an 'enter' keypress
-				$event.preventDefault();
-				$scope.addMessage();
-			}
-		}; 
-		
-		$scope.initReply = function(messageID) {
-			var message = getEntryByID($scope.messages, messageID);
-			$scope.replyTargetMessage = messageID;
-			$scope.replyTargetAuthor = message.author;
-			
-			$('#input_message').data('reply-target-author', $scope.replyTargetAuthor);
-			$('#input_message').popover('show');
-		}
-		
-		destroyReply = $scope.destroyReply = function() {
-			$scope.replyTargetMessage = -1;
-			$scope.replyTargetAuthor = -1;
-			
-			$('#input_message').data('reply-target-author', $scope.replyTargetAuthor);
-			$('#input_message').popover('hide');
-		}
-		
-		$scope.formatTaskTime = function(taskID) {
-			var task = getEntryByID($scope.tasks, taskID);
-			var niceTime = moment.unix(task.time).format('h:mma [on] MMM D, YYYY');
-			return niceTime;
-		};
-		
-		$scope.advanceTaskStatus = function(taskID) {
-			var task = getEntryByID($scope.tasks, taskID);
-			var currentStatus = task.status;
-			var newStatus = currentStatus + 1;
-			
-			socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
-			task.status = newStatus;
-		};
-		
-		$scope.retreatTaskStatus = function(taskID) {
-			var task = getEntryByID($scope.tasks, taskID);
-			var currentStatus = task.status;
-			var newStatus = currentStatus - 1;
-			
-			socket.emit('cts_task_status_changed', taskID, currentStatus, newStatus);
-			task.status = newStatus;
-		};
-		
-		$scope.addMessage = function() {
-			if(!$scope.inputMessage) {
-				return false;
-			}
-			
-			var messageData = {
-				'room': global_roomID,
-				'author': global_username,
-				'content': $scope.inputMessage,
-				'reply': $scope.replyTargetMessage
-			};
-			
-			socket.emit('cts_message', messageData);
-			console.log('emitting');
-			console.log(messageData);
-			
-			$scope.destroyReply();
-			
-			// $scope.messages.push(messageData); // TODO do we use a temporary?
-			
-			$scope.inputMessage = '';
-			$('#input_message').trigger('autosize.resize'); // necessary to get textarea to resize
-			
-			return false;
-		};
 		
 		$scope.jumpToReplyTarget = function(replyTargetID) {
 			var extra = 10; // scroll slightly above the actual top of the message
@@ -163,19 +76,6 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			window.location.href = '/';
 		});
 		
-		socket.on('membership_change', function(members) {
-			$scope.members = members.map(function(name) {
-				return {username: name, idle: false};
-			});
-		});
-		
-		socket.on('stc_add_task', function(newTask) {
-			$scope.tasks.push(newTask);
-			$scope.$apply();
-			
-			scrollBottom('#tasks');
-		});
-		
 		socket.on('stc_message', function(newMessage) {
 			console.log(newMessage);
 			
@@ -186,35 +86,6 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			if(atBottom) {
 				scrollBottom('#messages');
 			}
-		});
-		
-		socket.on('stc_user_idle', function(username) {
-			var member = getUserByUsername($scope.members, username);
-			if(member) {
-				member.idle = true;
-				$scope.$apply();
-			}
-		});
-		
-		socket.on('stc_user_active', function(username) {
-			var member = getUserByUsername($scope.members, username);
-			if(member) {
-				member.idle = false;
-				$scope.$apply();
-			}
-		});
-		
-		socket.on('stc_typing', function(username) {
-			/*
-			if(!members_typing_cooldown[username]) {
-				members_typing_cooldown[username] = true;
-			}
-			
-			if(!members_typing_flag[username]) {
-				addTypingNote(username);
-				members_typing_flag[username] = true;
-			}
-			*/
 		});
 		
 		/*###################################
@@ -231,37 +102,6 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		$(window).focus(function() {
 			socket.emit('cts_user_active');
 		});
-		
-		$('#sidebar').mouseenter(function() {
-			var $this = $(this);
-			
-			$('#sidebar_content').stop(false, true).show({
-				'effect': 'fade',
-				'duration': 300,
-				'queue': false
-			});
-			$this.stop().animate({ // properties
-				'width': '200px'
-			}, { // options
-				'duration': 400,
-				'queue': false
-			});
-		});
-		
-		$('#sidebar').mouseleave(function() {
-			var $this = $(this);
-			
-			$('#sidebar_content').stop(false, true).hide({
-				'effect': 'fade',
-				'duration': 300,
-				'queue': false
-			});
-			$this.stop().animate({ // properties
-				'width': '25px'
-			}, { // options
-				'duration': 400
-			});
-		});
 	});
 }]);
 
@@ -271,21 +111,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 
 // some initialization actions that occur only once when the page is loaded
 function initializePage() {
-	$('#input_message').autosize();
-	$('#input_message').popover({
-		html: true,
-		placement: 'left',
-		trigger: 'manual',
-		content: function() {
-			var replyTargetAuthor = $('#input_message').data('reply-target-author');
-			var htmlString = '<span id="reply_popover_content">Replying to ' + replyTargetAuthor + '</span>' + 
-							'<button id="close_reply_popover" onclick="destroyReply()" type="button" class="close">&times;</button>';
-			return htmlString;
-		}
-	});
-	
 	scrollBottom('#messages');
-	scrollBottom('#tasks');
 	
 	refreshTimeagos();
 	timeRefreshInterval = window.setInterval(refreshTimeagos, TIME_REFRESH_DELAY);

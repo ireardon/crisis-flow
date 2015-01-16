@@ -193,7 +193,7 @@ io.sockets.on('connection', function(socket) {
   ###################################*/
 
 // get updated json of the messages for a given room
-app.get('/rooms/:roomID/data', function(request, response) {
+app.get('/rooms/:roomID/data.json', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 
 	if(!sessionValid(request.session)) {
@@ -208,8 +208,6 @@ app.get('/rooms/:roomID/data', function(request, response) {
 			dbops.getOpenTasksForRoom(roomID, function(tasks) {
 				var members = clientDirectory.getClientsByRoom(room.id);
 			
-				console.log(messages);
-			
 				var context = {
 					'room': room,
 					'username': username,
@@ -221,6 +219,55 @@ app.get('/rooms/:roomID/data', function(request, response) {
 				
 				response.json(context);
 			});
+		});
+	});
+});
+
+// get updated json of the messages for a given room
+app.get('/rooms/:roomID/archive/messages.json', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
+	var roomID = request.params.roomID;
+	var username = request.session.user.username;
+	dbops.getRoom(roomID, function(room) {
+		dbops.getMessagesForRoom(roomID, false, function(messages) {		
+			var context = {
+				'room': room,
+				'username': username,
+				'messages': messages
+			};
+			
+			response.json(context);
+		});
+	});
+});
+
+// get updated json of the messages for a given room
+app.get('/rooms/:roomID/archive/tasks.json', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+
+	if(!sessionValid(request.session)) {
+		response.json({ 'error': 'Session is invalid' });
+		return;
+	}
+	
+	var roomID = request.params.roomID;
+	var username = request.session.user.username;
+	dbops.getRoom(roomID, function(room) {
+		dbops.getAllTasksForRoom(roomID, function(tasks) {
+			var context = {
+				'room': room,
+				'username': username,
+				'tasks': tasks,
+				'statusMap': config.STATUS_MAP
+			};
+			
+			response.json(context);
 		});
 	});
 });
@@ -461,7 +508,7 @@ app.get('/uploads/:filepath', function(request, response) {
 		filestream.pipe(response);
 	});
 });
-  
+
 // get the page for the given room
 app.get('/rooms/:roomID', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
@@ -481,6 +528,49 @@ app.get('/rooms/:roomID', function(request, response) {
 		};
 		
 		response.render('room.html', context);
+	});
+});
+
+// get the message archive page for the given room
+app.get('/rooms/:roomID/archive/messages', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+
+	if(!sessionValid(request.session)) {
+		response.redirect('/signin');
+		return;
+	}
+	
+	var roomID = request.params.roomID;
+	var username = request.session.user.username;
+	dbops.getRoom(roomID, function(room) {
+		var context = {
+			'room': room,
+			'username': username
+		};
+		
+		response.render('message_archive.html', context);
+	});
+});
+
+// get the tasks archive page for the given room
+app.get('/rooms/:roomID/archive/tasks', function(request, response) {
+	console.log(request.method + ' ' + request.originalUrl);
+
+	if(!sessionValid(request.session)) {
+		response.redirect('/signin');
+		return;
+	}
+	
+	var roomID = request.params.roomID;
+	var username = request.session.user.username;
+	dbops.getRoom(roomID, function(room) {
+		var context = {
+			'room': room,
+			'username': username,
+			'upload_path': config.UPLOAD_PATH
+		};
+		
+		response.render('task_archive.html', context);
 	});
 });
 
