@@ -13,19 +13,19 @@
 	<body>
 		<% include "navbar.html" %>
 		<div id="body_content">
-			<div class="row_container">
+			<div class="row">
 				<h2>Add directive</h2>
 			</div>
 			<form id="add_task_form"  class="form" action="/add_task/<%- @room_id %>" method="post" enctype="multipart/form-data">
-				<div class="row_container">
+				<div class="row">
 					<input id="task_title" name="title" type="text" form="add_task_form" class="form-control" placeholder="Title"/>
 					<button id="high_priority_button" type="button" class="btn btn-default" data-high-priority="false">Mark as high priority</button>
 					<input id="high_priority_input" name="high_priority" form="add_task_form" value="false" type="hidden"/>
 				</div>
-				<div class="row_container">
+				<div class="row">
 					<textarea id="task_content" name="content" form="add_task_form" class="form-control" placeholder="Enter the contents of the directive here..."></textarea>
 				</div>
-				<div class="row_container">
+				<div class="row">
 					<div id="form_tagging">
 						<p>Add relevant tags to this directive:</p>
 						<select id="task_tags" class="form-control" multiple="multiple" name="tags" form="add_task_form">
@@ -42,7 +42,7 @@
 						<button id="additional_files_button" type="button" class="btn btn-default">Add more files...</button>
 					</div>
 				</div>
-				<div class="row_container">
+				<div class="row">
 					<button id="submit_task" class="btn btn-primary" type="submit">Submit directive</button>
 					<a href="/rooms/<%- @room_id %>" id="never_mind" class="btn btn-default" role="button" type="submit">Never mind</a>
 				</div>

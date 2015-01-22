@@ -4,7 +4,9 @@
 	-webkit-box-shadow: 1px 1px 3px 3px #141313;
 	box-shadow: 1px 1px 3px 3px #141313;
 	padding: 10px;
-	margin: 20px auto;
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 20px;
 	height: 400px;
 	overflow: auto;
 	position: relative;
@@ -24,7 +26,9 @@
 	-webkit-box-shadow: 1px 1px 3px 3px #141313;
 	box-shadow: 1px 1px 3px 3px #141313;
 	padding: 10px;
-	margin: 20px auto;
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 20px;
 	height: 400px;
 	overflow: auto;
 }
@@ -32,13 +36,15 @@
 #task_content {
 	margin-left: 5%;
 	display: inline-block;
-	width: 30%;
+	width: 32%;
+	vertical-align: top;
 }
 
 #messaging_content {
 	margin-left: 3%;
 	display: inline-block;
-	width: 50%;
+	width: 52%;
+	vertical-align: top;
 }
 
 #sidebar_content {
@@ -218,4 +224,17 @@ a:hover.attachment_link { /* we want default bootstrap link colors for these */
 
 #send_message {
 	margin-left: 10px;
+}
+
+.bottom_link {
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 5px;
+}
+
+#sidebar_bottom_links {
+	bottom: 20px;
+	right: 25px;
+	position: absolute;
+	margin: auto;
 }

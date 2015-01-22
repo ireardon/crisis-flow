@@ -12,13 +12,17 @@
 	<body>
 		<% include "navbar_signin.html" %>
 		<div id="body_content">
-			<h2>Welcome to Crisis Flow!</h2>
-			<div id="signin_wrapper">
+			<div class="row width60">
+				<h2>Welcome to Crisis Flow!</h2>
+			</div>
+			<div id="signin_wrapper" class="row signin_width">
 				<form id="signin_form" class="form-inline">
 					<input id="username" class="form-control" type="text" placeholder="Username"/>
 					<input id="password" class="form-control" type="password" placeholder="Password"/>
 					<button id="submit_signin" class="btn btn-primary" type="submit">Sign in</button>
 				</form>
+			</div>
+			<div class="row signin_width">
 				<p>Don't have an account? <a href="/signup">Sign up here</a>.</p>
 			</div>
 		</div>

@@ -63,7 +63,9 @@
 		</div>
 		<% include "navbar.html" %>
 		<div id="body_content">
-			<h2>{{ room.name }}</h2>
+			<div class="row">
+				<h2>{{ room.name }}</h2>
+			</div>
 			<div id="task_content">
 				<div id="tasks">
 					<div id="task_wrapper">
@@ -111,8 +113,14 @@
 				<div id="members">
 					<p class="member" ng-repeat="member in members | orderBy:'username' track by member.username">{{ member.username }} <span ng-show="member.idle">(<span class="italic">away</span>)</span></p>
 				</div>
-				<a href="/rooms/<%- @room.id %>/archive/messages">Go to message archive</a>
-				<a href="/rooms/<%- @room.id %>/archive/tasks">Go to task archive</a>
+				<div id="sidebar_bottom_links">
+					<div class="bottom_link">
+						<a href="/rooms/<%- @room.id %>/archive/messages">Go to message archive</a>
+					</div>
+					<div class="bottom_link">
+						<a href="/rooms/<%- @room.id %>/archive/tasks">Go to task archive</a>
+					</div>
+				</div>
 			</div>
 		</div>
 	</body>

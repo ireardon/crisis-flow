@@ -38,6 +38,14 @@ a.btn {
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
+.btn-primary {
+	background-color: #03ffc1;
+}
+
+.btn-primary:hover {
+	background-color: #17C298;
+}
+
 a {
 	cursor: pointer;
 	text-decoration: none;
@@ -45,6 +53,17 @@ a {
 
 .navbar-header a {
 	font-family: "Montserrat", sans-serif;
+}
+
+.centered {
+	text-align: center;
+}
+
+.row {
+	margin-left: auto;
+	margin-right: auto;
+	margin-bottom: 20px;
+	max-width: 50%;
 }
 
 form label {

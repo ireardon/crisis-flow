@@ -1,16 +1,11 @@
-#nickname_form {
-	width: 60%;
-	margin: 40px auto;
+.row.width60 {
+	max-width: 60%;
 }
 
-form label {
-	font-weight: bold;
-	font-size: 14pt;
-	color: black;
+.row.signin_width {
+	max-width: 475px;
 }
 
-#nickname_wrapper {
-	text-align: center;
-	margin: auto;
-	overflow: hidden;
+.row.signup_width {
+	max-width: 700px;
 }
