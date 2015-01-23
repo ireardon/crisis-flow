@@ -17,6 +17,10 @@
 	color: #141313;
 }
 
+.select2-selection__choice {
+	color: #141313;
+}
+
 #task_title {
 	max-width: 500px;
 	display: inline-block;

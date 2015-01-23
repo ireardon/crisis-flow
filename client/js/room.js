@@ -76,6 +76,11 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			return niceTime;
 		};
 		
+		$scope.getReplyTargetAuthor = function(replyTargetID) {
+			var replyTarget = getEntryByID($scope.messages, replyTargetID);
+			return replyTarget.author;
+		};
+		
 		$scope.advanceTaskStatus = function(taskID) {
 			var task = getEntryByID($scope.tasks, taskID);
 			var currentStatus = task.status;
@@ -167,6 +172,8 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			$scope.members = members.map(function(name) {
 				return {username: name, idle: false};
 			});
+			
+			$scope.$apply();
 		});
 		
 		socket.on('stc_add_task', function(newTask) {
