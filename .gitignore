@@ -35,3 +35,6 @@ TODO.txt
 
 # Keep user-uploaded content out of repo
 uploads/*
+
+.elasticbeanstalk/
+.ebextensions/
