@@ -28,7 +28,7 @@ var clientdir = require('./lib/ClientDirectory');
   #          CONFIGURATION          #
   ###################################*/
 
-var port = process.env.PORT || 8080;
+var port = process.env.PORT;
 var app = express();
 
 var sessionStore = new SQLiteStore({ table: config.SESSION_DB_TABLENAME });
@@ -58,7 +58,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(multer({ dest: './uploads/'}));
 
 server.listen(port, function() {
-	console.log("LISTENING on port 8080");
+	console.log("LISTENING on port " + port);
 });
 
 /*###################################
