@@ -38,11 +38,11 @@ a.btn {
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-.btn-primary {
+.btn-themed {
 	background-color: #03ffc1;
 }
 
-.btn-primary:hover {
+.btn-themed:hover {
 	background-color: #17C298;
 }
 

@@ -2,11 +2,23 @@ var room_id;
 
 $(document).ready(function() {
 	room_id = document.querySelector('meta[name=room_id]').content;
-	$('#task_tags').select2({
-		tags: true,
-		tokenSeparators: [','],
-		width: 'resolve',
-		placeholder: 'Click to select or type'
+	
+	$.ajax({
+		type: 'GET',
+		url: '/tags.json',
+		dataType: 'json',
+		success: function(tagData) {
+			var tags = tagData.map(function(tag) {
+				return {'id': tag.id, 'text': tag.name};
+			});
+			
+			$('#task_tags').select2({
+				tags: tags,
+				tokenSeparators: [','],
+				width: 'resolve',
+				placeholder: 'Click to select or type'
+			});
+		}
 	});
 	
 	$('#high_priority_button').on('click', function() {

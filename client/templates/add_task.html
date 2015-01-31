@@ -29,10 +29,7 @@
 					<div id="form_tagging">
 						<p>Add relevant tags to this directive:</p>
 						<select id="task_tags" class="form-control" multiple="multiple" name="tags" form="add_task_form">
-							<% for tag in @tags : %>
 								<option value=""></option>
-								<option value="<%- tag.id %>"><%= tag.name %></option>
-							<% end %>
 						</select>
 					</div>
 					<div id="form_file_upload">

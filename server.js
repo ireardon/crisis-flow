@@ -28,7 +28,7 @@ var clientdir = require('./lib/ClientDirectory');
   #          CONFIGURATION          #
   ###################################*/
 
-var port = process.env.PORT;
+var port = process.env.PORT || 8080;
 var app = express();
 
 var sessionStore = new SQLiteStore({ table: config.SESSION_DB_TABLENAME });
@@ -269,6 +269,12 @@ app.get('/rooms/:roomID/archive/tasks.json', function(request, response) {
 			
 			response.json(context);
 		});
+	});
+});
+
+app.get('/tags.json', function(request, response) {
+	dbops.getAllTags(function(tags) {
+		response.json(tags);
 	});
 });
 
@@ -583,15 +589,12 @@ app.get('/add_task/:roomID', function(request, response) {
 		return;
 	}
 	
-	dbops.getAllTags(function(tags) {
-		var context = {
-			'username': request.session.user.username,
-			'room_id': request.params.roomID,
-			'tags': tags
-		};
-			
-		response.render('add_task.html', context);
-	});
+	var context = {
+		'username': request.session.user.username,
+		'room_id': request.params.roomID
+	};
+		
+	response.render('add_task.html', context);
 });
 
 app.get('/manage_rooms', function(request, response) {
