@@ -87,7 +87,7 @@
 						</div>
 					</div>
 				</div>
-				<a ng-href="/add_task/{{ room.id }}" id="add_task" class="btn btn-primary" type="submit">Add a new directive</a>
+				<a ng-href="/add_task/{{ room.id }}" id="add_task" class="btn btn-themed" type="submit">Add a new task</a>
 			</div>
 			<div id="messaging_content">
 				<div id="messages">
@@ -103,7 +103,7 @@
 					ng-keypress="enterInputMessage($event)" autofocus="true" data-toggle="popover" 
 					placeholder="Hi, {{ username }}! Say something…">
 					</textarea>
-					<button id="send_message" class="btn btn-primary" type="submit">Send</button>
+					<button id="send_message" class="btn btn-themed" type="submit">Send</button>
 				</form>
 			</div>
 		</div>

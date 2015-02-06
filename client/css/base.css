@@ -40,10 +40,12 @@ a.btn {
 
 .btn-themed {
 	background-color: #03ffc1;
+	color: white;
 }
 
 .btn-themed:hover {
 	background-color: #17C298;
+	color: white;
 }
 
 a {

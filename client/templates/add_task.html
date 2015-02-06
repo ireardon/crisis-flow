@@ -6,7 +6,7 @@
 		<script type="text/javascript" src="/select2/dist/js/select2.min.js" charset="utf-8"></script>
 		<link rel="stylesheet" type="text/css" href="/css/add_task.css"></link>
 		<link rel="stylesheet" type="text/css" href="/select2/dist/css/select2.min.css"></link>
-		<title id="page_title">Add directive | Crisis Flow</title>
+		<title id="page_title">Add task | Crisis Flow</title>
 		
 		<meta name="room_id" content="<%- @room_id %>"/>
 	</head>
@@ -14,7 +14,7 @@
 		<% include "navbar.html" %>
 		<div id="body_content">
 			<div class="row">
-				<h2>Add directive</h2>
+				<h2>Add task</h2>
 			</div>
 			<form id="add_task_form"  class="form" action="/add_task/<%- @room_id %>" method="post" enctype="multipart/form-data">
 				<div class="row">
@@ -27,13 +27,13 @@
 				</div>
 				<div class="row">
 					<div id="form_tagging">
-						<p>Add relevant tags to this directive:</p>
+						<p>Add tags which describe this task:</p>
 						<select id="task_tags" class="form-control" multiple="multiple" name="tags" form="add_task_form">
 								<option value=""></option>
 						</select>
 					</div>
 					<div id="form_file_upload">
-						<p>Attach any files pertaining to the directive here:</p>
+						<p>Attach any files pertaining to the task here:</p>
 						<div id="upload_files" data-num-files="1">
 							<input id="file1" type="file" name="file1" class="file_input form-control" form="add_task_form"></input>
 						</div>
@@ -41,7 +41,7 @@
 					</div>
 				</div>
 				<div class="row">
-					<button id="submit_task" class="btn btn-primary" type="submit">Submit directive</button>
+					<button id="submit_task" class="btn btn-themed" type="submit">Submit task</button>
 					<a href="/rooms/<%- @room_id %>" id="never_mind" class="btn btn-default" role="button" type="submit">Never mind</a>
 				</div>
 			</form>

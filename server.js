@@ -109,10 +109,6 @@ io.sockets.on('connection', function(socket) {
 		
 		clientDirectory.addClient(socket.user, socket, roomID);
 		
-		console.error(socket.room);
-		console.error(socket.user);
-		console.log(clientDirectory.getRoom(roomID).channels);
-		
 		var clients = clientDirectory.getClientsByRoom(socket.room);
 		
 		socket.broadcast.to(socket.room).emit('membership_change', clients);
@@ -163,12 +159,10 @@ io.sockets.on('connection', function(socket) {
 	
 	socket.on('cts_join_channel', function(channelID) {
 		clientDirectory.addToChannel(socket.user, socket.room, channelID);
-		console.log(clientDirectory.getRoom(socket.room).channels);
 	});
 	
 	socket.on('cts_leave_channel', function(channelID) {
 		clientDirectory.removeFromChannel(socket.user, socket.room, channelID);
-		console.log(clientDirectory.getRoom(socket.room).channels);
 	});
 	
 	// the client disconnected/closed their browser window
@@ -447,11 +441,8 @@ app.post('/signin', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
 	var username = request.body.username;
-
-	console.log(username);
 	
 	dbops.getUser(username, function(user) {
-		console.log('got user');
 		if(!user) {
 			response.json({ 'error': 'No such user' });
 			return;
@@ -476,7 +467,6 @@ app.post('/signup', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 	
 	var role_access = getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
-	console.log("Role access: " + role_access);
 	
 	if(!role_access) {
 		response.json({ 'error': 'Access code is incorrect' });
@@ -606,12 +596,11 @@ app.get('/manage_rooms', function(request, response) {
 	}
 	
 	dbops.getAllRooms(function(roomsList) {
-		console.log(roomsList);
-	
 		var context = {
 			'username': request.session.user.username,
 			'room_list': roomsList
 		};
+		
 		response.render('manage_rooms.html', context);
 	});
 });
@@ -620,7 +609,6 @@ app.get('/manage_rooms', function(request, response) {
 app.get('/index', function(request, response) {
 	console.log(request.method + ' ' + request.originalUrl);
 
-	console.log(request.session);
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
 		return;
@@ -706,7 +694,6 @@ function verifyPasswordHash(user, client_salted_hash, client_salt, server_salt) 
 function getAccessRole(access_code_salted_hash, client_salt, server_salt) {
 	var access_roles = ['admin', 'producer', 'consumer'];
 	
-	console.log(access_code_salted_hash);
 	for(var i=0; i<access_roles.length; i++) {
 		var key = access_roles[i] + client_salt + server_salt;
 		var role_code_salted_hash = crypto.createHash('sha256').update(key).digest('hex');
