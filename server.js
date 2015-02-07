@@ -175,12 +175,15 @@ io.sockets.on('connection', function(socket) {
 		// the docs say there is no need to call socket.leave(), as it happens automatically
 		// but this is clearly a lie, because it doesn't work
 		// fetch all sockets in a room
-		socket.leave(roomID);
-		clientDirectory.removeClient(socket.user, roomID);
 		
-		var remainingUsers = clientDirectory.getClientsByRoom(roomID);
-		
-		io.sockets.in(roomID).emit('membership_change', remainingUsers);
+		if(roomID !== undefined) { // if the server has gone down and no reconnect occurred, this will not exist
+			socket.leave(roomID);
+			clientDirectory.removeClient(socket.user, roomID);
+			
+			var remainingUsers = clientDirectory.getClientsByRoom(roomID);
+			
+			io.sockets.in(roomID).emit('membership_change', remainingUsers);
+		}
 	});
 });
 
