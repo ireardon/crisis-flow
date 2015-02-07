@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<% include "common_includes.html" %>
+		<link rel="stylesheet" type="text/css" href="/css/index.css"></link>
+		<title id="page_title">Page not found | Crisis Flow</title>
+	</head>
+	<body>
+		<% include "navbar.html" %>
+		<div id="body_content">
+			<div class="row">
+				<h2>Page not found</h2>
+			</div>
+			<div class="row centered">
+				<p>404 - that's an error!</p>
+				<p>It looks like the page you've requested - <%= @url %> - does not exist.</p>
+			</div>
+		</div>
+	</body>
+</html>

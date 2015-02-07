@@ -23,6 +23,7 @@ var config = require('./config');
 var dbops = require('./lib/database_ops');
 var getcookie = require('./lib/getcookie');
 var clientdir = require('./lib/ClientDirectory');
+var report = require('./lib/report');
 
 /*###################################
   #          CONFIGURATION          #
@@ -79,11 +80,16 @@ io.use(function(socket, next) {
 });
 
 var clientDirectory = io.sockets.clientDirectory = new clientdir.ClientDirectory();
-// this bit is super race-conditiony: this is an async call which
+// TODO this bit is super race-conditiony: this is an async call which
 // does not necessarily finish before the server starts listening for stuff
 // basically rests on the assumption that people won't be trying to join 
 // rooms immediately after the server starts up
-dbops.getAllRooms(function (rows) {
+dbops.getAllRooms(function (error, rows) {
+	if(error) {
+		report.error(error, 'Cannot read database. Quitting.');
+		process.exit(1);
+	}
+	
 	for(var i=0; i<rows.length; i++) {
 		var room = rows[i];
 		var channelIdentifiers = room.channels.map(function(channel) { return channel.id });
@@ -117,7 +123,12 @@ io.sockets.on('connection', function(socket) {
 	// the client emits this when they want to send a message
 	socket.on('cts_message', function(message) {
 		console.log('MESSAGE RECEIVED');
-		dbops.createMessage(socket.room, socket.user, message.reply, message.content, function(messageID, submitTime) {
+		dbops.createMessage(socket.room, socket.user, message.reply, message.content, function(error, messageID, submitTime) {
+			if(error) {
+				socket.emit('error', "Message failed to send.");
+				return;
+			}
+			
 			message.id = messageID;
 			message.room = socket.room;
 			message.author = socket.user;
@@ -139,7 +150,11 @@ io.sockets.on('connection', function(socket) {
 			console.error('ERROR invalid task status change');
 		}
 		
-		dbops.updateTaskStatus(taskID, oldStatus, newStatus, function() {
+		dbops.updateTaskStatus(taskID, oldStatus, newStatus, function(error) {
+			if(error) {
+				socket.emit('error', "Failed to update task status.");
+			}
+			
 			socket.broadcast.to(socket.room).emit('stc_task_status_changed', taskID, newStatus);
 		});
 	});
@@ -197,9 +212,24 @@ app.get('/rooms/:roomID/data.json', function(request, response) {
 	
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
-	dbops.getRoom(roomID, function(room) {
-		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(messages) {
-			dbops.getOpenTasksForRoom(roomID, function(tasks) {
+	dbops.getRoom(roomID, function(error, room) {
+		if(error) {
+			response.json({ 'error': 'Requested room is invalid' });
+			return;
+		}
+		
+		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(error, messages) {
+			if(error) {
+				response.json({ 'error': 'Request failed' });
+				return;
+			}
+			
+			dbops.getOpenTasksForRoom(roomID, function(error, tasks) {
+				if(error) {
+					response.json({ 'error': 'Request failed' });
+					return;
+				}
+				
 				var members = clientDirectory.getClientsByRoom(room.id);
 			
 				var context = {
@@ -228,8 +258,18 @@ app.get('/rooms/:roomID/archive/messages.json', function(request, response) {
 	
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
-	dbops.getRoom(roomID, function(room) {
-		dbops.getMessagesForRoom(roomID, false, function(messages) {		
+	dbops.getRoom(roomID, function(error, room) {
+		if(error) {
+			response.json({ 'error': 'Request room is invalid' });
+			return;
+		}
+			
+		dbops.getMessagesForRoom(roomID, false, function(error, messages) {		
+			if(error) {
+				response.json({ 'error': 'Request failed' });
+				return;
+			}
+			
 			var context = {
 				'room': room,
 				'username': username,
@@ -252,8 +292,18 @@ app.get('/rooms/:roomID/archive/tasks.json', function(request, response) {
 	
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
-	dbops.getRoom(roomID, function(room) {
-		dbops.getAllTasksForRoom(roomID, function(tasks) {
+	dbops.getRoom(roomID, function(error, room) {
+		if(error) {
+			response.json({ 'error': 'Requested room is invalid' });
+			return;
+		}
+		
+		dbops.getAllTasksForRoom(roomID, function(error, tasks) {
+			if(error) {
+				response.json({ 'error': 'Request failed' });
+				return;
+			}
+			
 			var context = {
 				'room': room,
 				'username': username,
@@ -267,7 +317,12 @@ app.get('/rooms/:roomID/archive/tasks.json', function(request, response) {
 });
 
 app.get('/tags.json', function(request, response) {
-	dbops.getAllTags(function(tags) {
+	dbops.getAllTags(function(error, tags) {
+		if(error) {
+			response.json({ 'error': 'Request failed' });
+			return;
+		}
+		
 		response.json(tags);
 	});
 });
@@ -285,7 +340,12 @@ app.post('/rooms/:roomID/send_message', function(request, response) {
 	var username = request.session.user.username;
 	var message = request.body.message;
 	
-	dbops.createMessage(roomID, username, message, function(submitTime) {
+	dbops.createMessage(roomID, username, message, function(error, submitTime) {
+		if(error) {
+			response.json({ 'error': 'Request failed' });
+			return;
+		}
+		
 		response.json(submitTime);
 	});
 });
@@ -300,7 +360,12 @@ app.post('/create_room', function(request, response) {
 	}
 	
 	var roomName = request.body.room_name;
-	dbops.createRoom(roomName, function(roomID) {
+	dbops.createRoom(roomName, function(error, roomID) {
+		if(error) {
+			response.json({ 'error': 'Failed to create room' });
+			return;
+		}
+		
 		clientDirectory.addRoom(roomID);
 		response.json(roomID);
 	});
@@ -317,7 +382,12 @@ app.post('/delete_room', function(request, response) {
 	
 	var roomID = request.body.room_id;
 	clientDirectory.removeRoom(roomID);
-	dbops.deleteRoom(roomID, function() {
+	dbops.deleteRoom(roomID, function(error) {
+		if(error) {
+			response.json({ 'error': 'Requested deletion of invalid room' });
+			return;
+		}
+		
 		response.json(roomID);
 	});
 });
@@ -331,7 +401,12 @@ app.post('/rename_room', function(request, response) {
 		return;
 	}
 	
-	dbops.renameRoom(request.body.room_id, request.body.new_name, function() {
+	dbops.renameRoom(request.body.room_id, request.body.new_name, function(error) {
+		if(error) {
+			response.json({ 'error': 'Requested rename of invalid room' });
+			return;
+		}
+		
 		response.json(request.body.room_id);
 	});
 });
@@ -346,7 +421,12 @@ app.post('/create_channel', function(request, response) {
 	
 	var roomID = request.body.room_id;
 	var channelName = request.body.channel_name;
-	dbops.createChannel(roomID, channelName, function(channelID) {
+	dbops.createChannel(roomID, channelName, function(error, channelID) {
+		if(error) {
+			response.json({ 'error': 'Failed to create channel' });
+			return;
+		}
+		
 		clientDirectory.getRoom(roomID).addChannels([channelID]);
 		response.json(channelID);
 	});
@@ -361,8 +441,18 @@ app.post('/delete_channel', function(request, response) {
 	}
 	
 	var channelID = request.body.channel_id;
-	dbops.getRoomOfChannel(channelID, function(roomID) {
-		dbops.deleteChannel(channelID, function() {
+	dbops.getRoomOfChannel(channelID, function(error, roomID) {
+		if(error) {
+			response.json({ 'error': 'Requested channel does not exist' });
+			return;
+		}
+		
+		dbops.deleteChannel(channelID, function(error) {
+			if(error) {
+				response.json({ 'error': 'Failed to delete channel' });
+				return;
+			}
+			
 			clientDirectory.getRoom(roomID).removeChannels([channelID]);
 			response.json(roomID);
 		});
@@ -377,7 +467,12 @@ app.post('/rename_channel', function(request, response) {
 		return;
 	}
 	
-	dbops.renameChannel(request.body.channel_id, request.body.channel_name, function() {
+	dbops.renameChannel(request.body.channel_id, request.body.channel_name, function(error) {
+		if(error) {
+			response.json({ 'error': 'Requested rename of invalid channel' });
+			return;
+		}
+		
 		response.json(request.body.channel_id);
 	});
 });
@@ -400,35 +495,57 @@ app.post('/add_task/:roomID', function(request, response) {
 		return request.files[key];
 	});
 	
-	dbops.getAllTags(function(preexistingTags) {
-		var preexistingTagIdentifiers = preexistingTags.map(function(tag) {
-			return tag.id;
-		});
+	dbops.getRoom(roomID, function(error) {
+		if(error) {
+			response.json({ 'error': 'Requested room is invalid' });
+			return;
+		}
 		
-		createNewTags(selectedTags, preexistingTagIdentifiers, function(allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
-			dbops.createTask(roomID, author, request.body.title, highPriority, request.body.content, function(taskID, submitTime) {
-				dbops.attachTagsToTask(taskID, allSelectedTags, function() {
-					attachFilesToTask(taskID, files, function() {
-						var attachments = files.map(function(file) {
-							return {'user_filename': file.orginalname, 'internal_filename': file.name};
-						});	
+		dbops.getAllTags(function(error, preexistingTags) {
+			if(error) {
+				response.json({ 'error': 'Request failed' });
+				return;
+			}
+			
+			var preexistingTagIdentifiers = preexistingTags.map(function(tag) {
+				return tag.id;
+			});
+			
+			createNewTags(selectedTags, preexistingTagIdentifiers, function(allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
+				dbops.createTask(roomID, author, request.body.title, highPriority, request.body.content, function(error, taskID, submitTime) {
+					if(error) {
+						response.json({ 'error': 'Request failed' });
+						return;
+					}
 					
-						var taskData = {
-							'id': taskID,
-							'room': roomID,
-							'author': author,
-							'title': request.body.title,
-							'status': config.STATUS_SUBMITTED,
-							'high_priority': highPriority,
-							'content': request.body.content,
-							'time': submitTime,
-							'tags': allSelectedTags,
-							'attachments': attachments
-						};
+					dbops.attachTagsToTask(taskID, allSelectedTags, function(error) {
+						if(error) {
+							response.json({ 'error': 'Request failed' });
+							return;
+						}
 						
-						io.sockets.in(roomID).emit('stc_add_task', taskData);
+						attachFilesToTask(taskID, files, function() {
+							var attachments = files.map(function(file) {
+								return {'user_filename': file.orginalname, 'internal_filename': file.name};
+							});	
 						
-						response.redirect('/rooms/' + roomID);
+							var taskData = {
+								'id': taskID,
+								'room': roomID,
+								'author': author,
+								'title': request.body.title,
+								'status': config.STATUS_SUBMITTED,
+								'high_priority': highPriority,
+								'content': request.body.content,
+								'time': submitTime,
+								'tags': allSelectedTags,
+								'attachments': attachments
+							};
+							
+							io.sockets.in(roomID).emit('stc_add_task', taskData);
+							
+							response.redirect('/rooms/' + roomID);
+						});
 					});
 				});
 			});
@@ -442,9 +559,9 @@ app.post('/signin', function(request, response) {
 	
 	var username = request.body.username;
 	
-	dbops.getUser(username, function(user) {
-		if(!user) {
-			response.json({ 'error': 'No such user' });
+	dbops.getUser(username, function(error, user) {
+		if(error) {
+			response.json({ 'error': 'Username is invalid' });
 			return;
 		}
 	
@@ -473,7 +590,7 @@ app.post('/signup', function(request, response) {
 	} else {
 		dbops.createUser(request.body.username, request.body.hashed_password, role_access, function(error) {
 			if(error) {
-				response.json({ 'error': 'Username is already in use' });
+				response.json({ 'error': 'Request username is already in use' });
 			} else {
 				response.json({ 'success': true });
 			}
@@ -496,7 +613,12 @@ app.get('/uploads/:filepath', function(request, response) {
 	var filename = path.basename(request.params.filepath);
 	var mimetype = mime.lookup(filename);
 	
-	dbops.getAttachmentByFilename(filename, function(userFilename) {
+	dbops.getAttachmentByFilename(filename, function(error, userFilename) {
+		if(error) {
+			sendNotFound(request, response);
+			return;
+		}
+		
 		response.setHeader('Content-disposition', 'attachment; filename=' + userFilename);
 		response.setHeader('Content-type', mimetype);
 
@@ -516,7 +638,12 @@ app.get('/rooms/:roomID', function(request, response) {
 	
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
-	dbops.getRoom(roomID, function(room) {
+	dbops.getRoom(roomID, function(error, room) {
+		if(error) {
+			sendNotFound(request, response);
+			return;
+		}
+		
 		var context = {
 			'room': room,
 			'username': username,
@@ -538,7 +665,12 @@ app.get('/rooms/:roomID/archive/messages', function(request, response) {
 	
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
-	dbops.getRoom(roomID, function(room) {
+	dbops.getRoom(roomID, function(error, room) {
+		if(error) {
+			sendNotFound(request, response);
+			return;
+		}
+		
 		var context = {
 			'room': room,
 			'username': username
@@ -559,7 +691,12 @@ app.get('/rooms/:roomID/archive/tasks', function(request, response) {
 	
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
-	dbops.getRoom(roomID, function(room) {
+	dbops.getRoom(roomID, function(error, room) {
+		if(error) {
+			sendNotFound(request, response);
+			return;
+		}
+		
 		var context = {
 			'room': room,
 			'username': username,
@@ -579,12 +716,19 @@ app.get('/add_task/:roomID', function(request, response) {
 		return;
 	}
 	
-	var context = {
-		'username': request.session.user.username,
-		'room_id': request.params.roomID
-	};
+	dbops.getRoom(request.params.roomID, function(error) {
+		if(error) {
+			sendNotFound(request, response);
+			return;
+		}
 		
-	response.render('add_task.html', context);
+		var context = {
+			'username': request.session.user.username,
+			'room_id': request.params.roomID
+		};
+		
+		response.render('add_task.html', context);
+	});
 });
 
 app.get('/manage_rooms', function(request, response) {
@@ -595,7 +739,12 @@ app.get('/manage_rooms', function(request, response) {
 		return;
 	}
 	
-	dbops.getAllRooms(function(roomsList) {
+	dbops.getAllRooms(function(error, roomsList) {
+		if(error) {
+			sendNotFound(request, response);
+			return;
+		}
+		
 		var context = {
 			'username': request.session.user.username,
 			'room_list': roomsList
@@ -614,7 +763,12 @@ app.get('/index', function(request, response) {
 		return;
 	}
 	
-	dbops.getAllRooms(function(roomsList) {
+	dbops.getAllRooms(function(error, roomsList) {
+		if(error) {
+			sendNotFound(request, response);
+			return;
+		}
+		
 		roomsList.forEach(function(room) {
 			var members = clientDirectory.getClientsByRoom(room.id);
 			room.num_members = members.length;
@@ -673,9 +827,49 @@ app.get('/', function(request, response) {
 });
 
 /*###################################
+  #    ERROR-HANDLING MIDDLEWARE    #
+  ###################################*/
+
+app.use(sendNotFound);
+
+app.use(function(error, request, response, next) {
+	report.error(error, 'The 500 handler was invoked');
+	
+	var context = {};
+	if(request.session.user) {
+		context.username = request.session.user.username;
+	}
+	
+	response.status(error.status || 500);
+	response.render('500.html', context);
+});
+
+/*###################################
   #        SUPPORT FUNCTIONS        #
   ###################################*/
 
+function sendNotFound(request, response) {
+	response.status(404);
+	
+	if (request.accepts('html')) {
+		var context = { url: request.url };
+		
+		if(request.session.user) {
+			context.username = request.session.user.username;
+		}
+		
+		response.render('404.html', context);
+		return;
+	}
+
+	if (request.accepts('json')) {
+		response.send({ error: 'Not found' });
+		return;
+	}
+
+	response.type('txt').send('Not found');
+}
+  
 function sessionValid(session) {
 	if(!session || !session.active) {
 		return false;

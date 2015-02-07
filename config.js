@@ -1,5 +1,7 @@
 // this file contains global config variables
 
+var DEBUG = true;
+
 // a secret string used to cryptographically sign cookies (this can be anything, just don't expose it)
 var COOKIE_SIGN_SECRET = 'genericsecret';
 
@@ -34,6 +36,7 @@ STATUS_MAP[STATUS_CANCELLED] = 'Cancelled';
 var DEFAULT_MESSAGE_COUNT = 100;
 
 module.exports = {
+	'DEBUG': DEBUG,
 	'COOKIE_SIGN_SECRET': COOKIE_SIGN_SECRET,
 	'COOKIE_SESSION_KEY': COOKIE_SESSION_KEY,
 	'DATA_DB_FILENAME': DATA_DB_FILENAME,
