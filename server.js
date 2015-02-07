@@ -58,8 +58,11 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(multer({ dest: './uploads/'}));
 
-server.listen(port, function() {
-	console.log("LISTENING on port " + port);
+var clientDirectory = io.sockets.clientDirectory = new clientdir.ClientDirectory();
+clientDirectory.syncToDB(function() {
+	server.listen(port, function() {
+		console.log("LISTENING on port " + port);
+	});
 });
 
 /*###################################
@@ -79,26 +82,10 @@ io.use(function(socket, next) {
 	});
 });
 
-var clientDirectory = io.sockets.clientDirectory = new clientdir.ClientDirectory();
-// TODO this bit is super race-conditiony: this is an async call which
-// does not necessarily finish before the server starts listening for stuff
-// basically rests on the assumption that people won't be trying to join 
-// rooms immediately after the server starts up
-dbops.getAllRooms(function (error, rows) {
-	if(error) {
-		report.error(error, 'Cannot read database. Quitting.');
-		process.exit(1);
-	}
-	
-	for(var i=0; i<rows.length; i++) {
-		var room = rows[i];
-		var channelIdentifiers = room.channels.map(function(channel) { return channel.id });
-		clientDirectory.addRoom(room.id).addChannels(channelIdentifiers);
-	}
-});
-
 io.sockets.on('connection', function(socket) {
 	console.log('SOCKET connected');
+	
+	socket.emit('stc_rejoin');
 	
 	// check that this socket is associated with a valid session
 	if(!sessionValid(socket.session)) {

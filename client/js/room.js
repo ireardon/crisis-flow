@@ -3,6 +3,7 @@ var TIME_REFRESH_DELAY = 15000;
 var members_typing_cooldown = {};
 var members_typing_flag = {};
 var global_roomID, global_username;
+var global_joinedOnce = false;
 var typing_interval_id = -1;
 var timeRefreshInterval = -1;
 var destroyReply;
@@ -35,6 +36,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 				$scope.$apply();
 			
 				socket.emit('join', $scope.room.id, $scope.username);
+				global_joinedOnce = true;
 				
 				initializePage();
 			}
@@ -166,6 +168,12 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			console.error('Error: Web socket disconnected');
 			alert('Error: Web socket disconnected: ' + message);
 			window.location.href = '/';
+		});
+		
+		socket.on('stc_rejoin', function() {
+			if(global_joinedOnce) {
+				socket.emit('join', $scope.room.id, $scope.username);
+			}
 		});
 		
 		socket.on('membership_change', function(members) {
