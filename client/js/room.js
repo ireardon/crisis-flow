@@ -194,6 +194,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		socket.on('stc_task_status_changed', function(taskID, newStatus) {
 			var task = getEntryByID($scope.tasks, taskID);
 			task.status = newStatus;
+			$scope.$apply();
 		});
 		
 		socket.on('stc_message', function(newMessage) {
