@@ -191,9 +191,12 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			scrollBottom('#tasks');
 		});
 		
+		socket.on('stc_task_status_changed', function(taskID, newStatus) {
+			var task = getEntryByID($scope.tasks, taskID);
+			task.status = newStatus;
+		});
+		
 		socket.on('stc_message', function(newMessage) {
-			console.log(newMessage);
-			
 			$scope.messages.push(newMessage);
 			var atBottom = scrolledToBottom('#messages');
 			$scope.$apply();

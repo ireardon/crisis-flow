@@ -83,7 +83,7 @@ io.use(function(socket, next) {
 });
 
 io.sockets.on('connection', function(socket) {
-	console.log('SOCKET connected');
+	report.debug('SOCKET connected');
 	
 	socket.emit('stc_rejoin');
 	
@@ -96,7 +96,7 @@ io.sockets.on('connection', function(socket) {
 	socket.user = socket.session.user.username;
 	
 	socket.on('join', function(roomID) {
-		console.error('ROOM JOINED');
+		report.debug('ROOM JOINED');
 		socket.join(roomID);
 		socket.room = roomID;
 		
@@ -109,7 +109,7 @@ io.sockets.on('connection', function(socket) {
 
 	// the client emits this when they want to send a message
 	socket.on('cts_message', function(message) {
-		console.log('MESSAGE RECEIVED');
+		report.debug('MESSAGE RECEIVED');
 		dbops.createMessage(socket.room, socket.user, message.reply, message.content, function(error, messageID, submitTime) {
 			if(error) {
 				socket.emit('error', "Message failed to send.");
@@ -128,13 +128,13 @@ io.sockets.on('connection', function(socket) {
 	
 	// the client emits this whenever the user marks a task as completed
 	socket.on('cts_task_status_changed', function(taskID, oldStatus, newStatus) {
-		console.log('RECEIVED task status change');
+		report.debug('RECEIVED task status change');
 		
 		oldStatus = Number(oldStatus);
 		newStatus = Number(newStatus);
 		
 		if(!validStatus(oldStatus) || !validStatus(newStatus)) {
-			console.error('ERROR invalid task status change');
+			report.error('ERROR invalid task status change');
 		}
 		
 		dbops.updateTaskStatus(taskID, oldStatus, newStatus, function(error) {
@@ -169,7 +169,7 @@ io.sockets.on('connection', function(socket) {
 	
 	// the client disconnected/closed their browser window
 	socket.on('disconnect', function() {
-		console.log('SOCKET disconnected');
+		report.debug('SOCKET disconnected');
 		
 		var roomID = socket.room;
 		// the docs say there is no need to call socket.leave(), as it happens automatically
@@ -193,7 +193,7 @@ io.sockets.on('connection', function(socket) {
 
 // get updated json of the messages for a given room
 app.get('/rooms/:roomID/data.json', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -239,7 +239,7 @@ app.get('/rooms/:roomID/data.json', function(request, response) {
 
 // get updated json of the messages for a given room
 app.get('/rooms/:roomID/archive/messages.json', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -273,7 +273,7 @@ app.get('/rooms/:roomID/archive/messages.json', function(request, response) {
 
 // get updated json of the messages for a given room
 app.get('/rooms/:roomID/archive/tasks.json', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -307,6 +307,8 @@ app.get('/rooms/:roomID/archive/tasks.json', function(request, response) {
 });
 
 app.get('/tags.json', function(request, response) {
+	reportRequest(request);
+	
 	dbops.getAllTags(function(error, tags) {
 		if(error) {
 			response.json({ 'error': 'Request failed' });
@@ -319,7 +321,7 @@ app.get('/tags.json', function(request, response) {
 
 // post a message in the given room
 app.post('/rooms/:roomID/send_message', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -342,7 +344,7 @@ app.post('/rooms/:roomID/send_message', function(request, response) {
 
 // create a new room
 app.post('/create_room', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -363,7 +365,7 @@ app.post('/create_room', function(request, response) {
 
 // delete a room
 app.post('/delete_room', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -384,7 +386,7 @@ app.post('/delete_room', function(request, response) {
 
 // rename a room
 app.post('/rename_room', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -402,7 +404,7 @@ app.post('/rename_room', function(request, response) {
 });
 
 app.post('/create_channel', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -423,7 +425,7 @@ app.post('/create_channel', function(request, response) {
 });
 
 app.post('/delete_channel', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -450,7 +452,7 @@ app.post('/delete_channel', function(request, response) {
 });
 
 app.post('/rename_channel', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -469,7 +471,7 @@ app.post('/rename_channel', function(request, response) {
 
 // create a new task
 app.post('/add_task/:roomID', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.json({ 'error': 'Session is invalid' });
@@ -545,7 +547,7 @@ app.post('/add_task/:roomID', function(request, response) {
 
 // signin with given username and password
 app.post('/signin', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	var username = request.body.username;
 	
@@ -571,7 +573,7 @@ app.post('/signin', function(request, response) {
 });
 
 app.post('/signup', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	var role_access = getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
 	
@@ -593,7 +595,7 @@ app.post('/signup', function(request, response) {
   ###################################*/
 
 app.get('/uploads/:filepath', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
@@ -619,7 +621,7 @@ app.get('/uploads/:filepath', function(request, response) {
 
 // get the page for the given room
 app.get('/rooms/:roomID', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
@@ -646,7 +648,7 @@ app.get('/rooms/:roomID', function(request, response) {
 
 // get the message archive page for the given room
 app.get('/rooms/:roomID/archive/messages', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
@@ -672,7 +674,7 @@ app.get('/rooms/:roomID/archive/messages', function(request, response) {
 
 // get the tasks archive page for the given room
 app.get('/rooms/:roomID/archive/tasks', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
@@ -699,7 +701,7 @@ app.get('/rooms/:roomID/archive/tasks', function(request, response) {
 
 // get the task adding page
 app.get('/add_task/:roomID', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
@@ -722,7 +724,7 @@ app.get('/add_task/:roomID', function(request, response) {
 });
 
 app.get('/manage_rooms', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
@@ -746,7 +748,7 @@ app.get('/manage_rooms', function(request, response) {
 
 // get the room index page
 app.get('/index', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
@@ -774,7 +776,7 @@ app.get('/index', function(request, response) {
 
 // get the signup page
 app.get('/signup', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	request.session.server_salt = getSaltBits();
 	
@@ -786,7 +788,7 @@ app.get('/signup', function(request, response) {
 
 // get the signin page
 app.get('/signin', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	request.session.server_salt = getSaltBits();
 	
@@ -798,7 +800,7 @@ app.get('/signin', function(request, response) {
 
 // mark session inactive and redirect to signin
 app.get('/signout', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	request.session.active = false;
 	
@@ -807,7 +809,7 @@ app.get('/signout', function(request, response) {
 
 // get the signin page if no active session, index otherwise
 app.get('/', function(request, response) {
-	console.log(request.method + ' ' + request.originalUrl);
+	reportRequest(request);
 	
 	if(!sessionValid(request.session)) {
 		response.redirect('/signin');
@@ -839,6 +841,8 @@ app.use(function(error, request, response, next) {
   ###################################*/
 
 function sendNotFound(request, response) {
+	report.debug('ISSUED 404 for URL: ' + request.url);
+	
 	response.status(404);
 	
 	if (request.accepts('html')) {
@@ -859,7 +863,11 @@ function sendNotFound(request, response) {
 
 	response.type('txt').send('Not found');
 }
-  
+
+function reportRequest(request) {
+	report.debug(request.method + ' ' + request.originalUrl);
+}
+
 function sessionValid(session) {
 	if(!session || !session.active) {
 		return false;
