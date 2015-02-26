@@ -65,7 +65,14 @@ a {
 	margin-left: auto;
 	margin-right: auto;
 	margin-bottom: 20px;
-	max-width: 50%;
+}
+
+.text_centered {
+	text-align: center;
+}
+
+.shrink_to_content {
+	display: inline-block;
 }
 
 form label {

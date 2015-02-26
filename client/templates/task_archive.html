@@ -34,7 +34,7 @@
 										<li ng-repeat="tag in task.tags track by tag.id" class="task_tag">{{ tag.name }}</li>
 								</ul>
 							</div>
-							<p class="task_detail_profile">Submitted by {{ task.author }} (<span class="task_time">{{ formatTaskTime(task.id) }}</span>)</p>
+							<p class="task_detail_profile">Submitted by {{ task.authorDisplayName }} (<span class="task_time">{{ formatTaskTime(task.id) }}</span>)</p>
 						</div>
 						<div class="modal-body">
 							<div class="task_content">
@@ -73,7 +73,7 @@
 							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
 							<a class="task_title bold" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>
 							<div class="task_summary">
-								<span class="task_author">From: {{ task.author }}</span>
+								<span class="task_author">From: {{ task.authorDisplayName }}</span>
 								<span class="task_status">Status: {{ statusStrings[task.status] }}</span>
 							</div>
 							<div ng-show="task.tags.length" class="task_preview_tags_list">

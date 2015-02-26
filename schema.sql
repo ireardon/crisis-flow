@@ -12,6 +12,7 @@ CREATE TABLE users (
 	username TEXT PRIMARY KEY,
 	password_hash TEXT,
 	role INT,
+	display_name TEXT,
 	FOREIGN KEY(role) REFERENCES role(id)
 );
 

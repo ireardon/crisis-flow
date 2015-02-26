@@ -34,7 +34,7 @@
 										<li ng-repeat="tag in task.tags track by tag.id" class="task_tag">{{ tag.name }}</li>
 								</ul>
 							</div>
-							<p class="task_detail_profile">Submitted by {{ task.author }} (<span class="task_time">{{ formatTaskTime(task.id) }}</span>)</p>
+							<p class="task_detail_profile">Submitted by {{ task.authorDisplayName }} (<span class="task_time">{{ formatTaskTime(task.id) }}</span>)</p>
 						</div>
 						<div class="modal-body">
 							<div class="task_content">
@@ -75,7 +75,7 @@
 							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
 							<a class="task_title bold" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>
 							<div class="task_summary">
-								<span class="task_author">From: {{ task.author }}</span>
+								<span class="task_author">From: {{ task.authorDisplayName }}</span>
 								<span class="task_status">Status: {{ statusStrings[task.status] }}</span>
 							</div>
 							<div ng-show="task.tags.length" class="task_preview_tags_list">
@@ -93,15 +93,15 @@
 				<div id="messages">
 					<div ng-repeat="message in messages | orderBy:'time':false track by message.id" id="message_{{ message.id }}"
 					class="message" data-toggle="tooltip" data-placement="left" data-message-time="{{ message.time }}">
-						<a class="reply_forward_link bold" ng-click="initReply(message.id)">{{ message.author }}:</a>
-						<p class="reply_backward_link" ng-show="message.reply >= 0">(<a ng-click="jumpToReplyTarget(message.reply)" class="italic">reply to {{ getReplyTargetAuthor(message.reply) }}</a>)</p>
+						<a class="reply_forward_link bold" ng-click="initReply(message.id)">{{ message.authorDisplayName }}:</a>
+						<p class="reply_backward_link" ng-show="message.reply >= 0">(<a ng-click="jumpToReplyTarget(message.reply)" class="italic">reply to {{ getReplyTargetAuthorDisplayName(message.reply) }}</a>)</p>
 						<p>{{ message.content }}</p>
 					</div>
 				</div>
 				<form id="add_message_form" class="form-inline" ng-submit="addMessage()">
 					<textarea id="input_message" class="form-control" ng-model="inputMessage" 
 					ng-keypress="enterInputMessage($event)" autofocus="true" data-toggle="popover" 
-					placeholder="Hi, {{ username }}! Say something…">
+					placeholder="Hi, {{ displayName }}! Say something…">
 					</textarea>
 					<button id="send_message" class="btn btn-themed" type="submit">Send</button>
 				</form>
@@ -111,7 +111,7 @@
 			<div id="sidebar_content">
 				<h4>Members</h4>
 				<div id="members">
-					<p class="member" ng-repeat="member in members | orderBy:'username' track by member.username">{{ member.username }} <span ng-show="member.idle">(<span class="italic">away</span>)</span></p>
+					<p class="member" ng-repeat="member in members | orderBy:'username' track by member.username">{{ member.displayName }} <span ng-show="member.idle">(<span class="italic">away</span>)</span></p>
 				</div>
 				<div id="sidebar_bottom_links">
 					<div class="bottom_link">

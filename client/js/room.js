@@ -22,16 +22,22 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			dataType: 'json',
 			success: function(data) {
 				$scope.username = data.username;
+				$scope.displayName = data.displayName;
 				$scope.room = data.room;
 				$scope.tasks = data.tasks;
 				$scope.messages = data.messages;
 				$scope.statusStrings = data.statusMap;
 				$scope.replyTargetMessage = -1;
-				$scope.replyTargetAuthor = -1;
-				$scope.members = data.members.map(function(name) {
-					return {username: name, idle: false};
+				$scope.replyTargetAuthorDisplayName = -1;
+				$scope.members = data.members.map(function(member) {
+					member.idle = false;
+					return member;
 				});
-				$scope.members.push({username: $scope.username, idle: false});
+				$scope.members.push({
+					username: $scope.username,
+					displayName: $scope.displayName,
+					idle: false
+				});
 				
 				$scope.$apply();
 			
@@ -58,17 +64,17 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		$scope.initReply = function(messageID) {
 			var message = getEntryByID($scope.messages, messageID);
 			$scope.replyTargetMessage = messageID;
-			$scope.replyTargetAuthor = message.author;
+			$scope.replyTargetAuthorDisplayName = getReplyTargetAuthorDisplayName(messageID);
 			
-			$('#input_message').data('reply-target-author', $scope.replyTargetAuthor);
+			$('#input_message').data('reply-target-author', $scope.replyTargetAuthorDisplayName);
 			$('#input_message').popover('show');
 		}
 		
 		destroyReply = $scope.destroyReply = function() {
 			$scope.replyTargetMessage = -1;
-			$scope.replyTargetAuthor = -1;
+			$scope.replyTargetAuthorDisplayName = -1;
 			
-			$('#input_message').data('reply-target-author', $scope.replyTargetAuthor);
+			$('#input_message').data('reply-target-author', $scope.replyTargetAuthorDisplayName);
 			$('#input_message').popover('hide');
 		}
 		
@@ -78,9 +84,9 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			return niceTime;
 		};
 		
-		$scope.getReplyTargetAuthor = function(replyTargetID) {
+		getReplyTargetAuthorDisplayName = $scope.getReplyTargetAuthorDisplayName = function(replyTargetID) {
 			var replyTarget = getEntryByID($scope.messages, replyTargetID);
-			return replyTarget.author;
+			return replyTarget.authorDisplayName;
 		};
 		
 		$scope.advanceTaskStatus = function(taskID) {
@@ -166,7 +172,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		socket.on('error', function(message) { // message is an event object for some reason, not a string
 			console.error(message);
 			console.error('Error: Web socket disconnected');
-			alert('Error: Web socket disconnected: ' + message);
+			alert('Error: Web socket disconnected!');
 			window.location.href = '/';
 		});
 		
@@ -177,8 +183,14 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		});
 		
 		socket.on('membership_change', function(members) {
-			$scope.members = members.map(function(name) {
-				return {username: name, idle: false};
+			$scope.members = members.map(function(member) {
+				member.idle = false;
+				return member;
+			});
+			$scope.members.push({
+				username: $scope.username,
+				displayName: $scope.displayName,
+				idle: false
 			});
 			
 			$scope.$apply();
@@ -296,8 +308,8 @@ function initializePage() {
 		placement: 'left',
 		trigger: 'manual',
 		content: function() {
-			var replyTargetAuthor = $('#input_message').data('reply-target-author');
-			var htmlString = '<span id="reply_popover_content">Replying to ' + replyTargetAuthor + '</span>' + 
+			var replyTargetAuthorDisplayName = $('#input_message').data('reply-target-author');
+			var htmlString = '<span id="reply_popover_content">Replying to ' + replyTargetAuthorDisplayName + '</span>' + 
 							'<button id="close_reply_popover" onclick="destroyReply()" type="button" class="close">&times;</button>';
 			return htmlString;
 		}

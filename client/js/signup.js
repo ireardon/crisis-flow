@@ -3,9 +3,7 @@ var SALT_LENGTH;
 
 $(document).ready(function() {
 	SERVER_SALT = document.querySelector('meta[name=server_salt]').content;
-	console.log(SERVER_SALT);
 	SALT_LENGTH = SERVER_SALT.length;
-	console.log(SALT_LENGTH);
 
 	$('#signup_form').submit(function(event) {
 		event.preventDefault();
@@ -13,23 +11,19 @@ $(document).ready(function() {
 		var username_val = $('#username').val();
 		var password_val = $('#password').val();
 		var access_val = $('#access_code').val();
-		
-		console.log(password_val);
-		console.log(access_val);
+		var display_name_val = $('#display_name').val();
 		
 		var client_salt = getSaltBits();
-		console.log(client_salt);
 		var hashed_password = CryptoJS.SHA256(password_val).toString(CryptoJS.enc.Hex);
-		console.log(hashed_password);
 		
 		var hashed_access_code = hashAccessCode(access_val, client_salt, SERVER_SALT);
-		console.log(hashed_access_code);
 		
 		var post_data = {
 			'username': username_val,
 			'client_salt': client_salt,
 			'hashed_password': hashed_password,
-			'access_code_salted_hash': hashed_access_code
+			'access_code_salted_hash': hashed_access_code,
+			'display_name': display_name_val
 		};
 		
 		$.post('/signup', post_data, function(response) {

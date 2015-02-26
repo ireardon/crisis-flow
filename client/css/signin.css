@@ -6,6 +6,6 @@
 	max-width: 475px;
 }
 
-.row.signup_width {
-	max-width: 700px;
+#display_name {
+	width: 390px;
 }

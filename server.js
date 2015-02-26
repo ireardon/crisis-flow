@@ -102,9 +102,20 @@ io.sockets.on('connection', function(socket) {
 		
 		clientDirectory.addClient(socket.user, socket, roomID);
 		
-		var clients = clientDirectory.getClientsByRoom(socket.room);
+		var clientIdentifiers = clientDirectory.getClientsByRoom(socket.room);
 		
-		socket.broadcast.to(socket.room).emit('membership_change', clients);
+		dbops.getUsersDictionary(function(error, usersDictionary) {
+			if(error) {
+				response.json({ 'error': 'Request failed' });
+				return;
+			}
+			
+			var clients = clientIdentifiers.map(function(userID) {
+				return usersDictionary[userID];
+			});
+		
+			socket.broadcast.to(socket.room).emit('membership_change', clients);
+		});
 	});
 
 	// the client emits this when they want to send a message
@@ -119,6 +130,7 @@ io.sockets.on('connection', function(socket) {
 			message.id = messageID;
 			message.room = socket.room;
 			message.author = socket.user;
+			message.authorDisplayName = socket.session.user.display_name;
 			message.time = submitTime;
 			
 			socket.emit('stc_message', message);
@@ -180,9 +192,20 @@ io.sockets.on('connection', function(socket) {
 			socket.leave(roomID);
 			clientDirectory.removeClient(socket.user, roomID);
 			
-			var remainingUsers = clientDirectory.getClientsByRoom(roomID);
+			var remainingUsersIdentifiers = clientDirectory.getClientsByRoom(roomID);
 			
-			io.sockets.in(roomID).emit('membership_change', remainingUsers);
+			dbops.getUsersDictionary(function(error, usersDictionary) {
+				if(error) {
+					response.json({ 'error': 'Request failed' });
+					return;
+				}
+				
+				var remainingUsers = remainingUsersIdentifiers.map(function(userID) {
+					return usersDictionary[userID];
+				});
+				
+				io.sockets.in(roomID).emit('membership_change', remainingUsers);
+			});
 		}
 	});
 });
@@ -202,36 +225,60 @@ app.get('/rooms/:roomID/data.json', function(request, response) {
 	
 	var roomID = request.params.roomID;
 	var username = request.session.user.username;
+	var displayName = request.session.user.display_name;
+	
 	dbops.getRoom(roomID, function(error, room) {
 		if(error) {
 			response.json({ 'error': 'Requested room is invalid' });
 			return;
 		}
 		
-		dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(error, messages) {
+		dbops.getUsersDictionary(function(error, usersDictionary) {
 			if(error) {
 				response.json({ 'error': 'Request failed' });
 				return;
 			}
 			
-			dbops.getOpenTasksForRoom(roomID, function(error, tasks) {
+			dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(error, messages) {
 				if(error) {
 					response.json({ 'error': 'Request failed' });
 					return;
 				}
 				
-				var members = clientDirectory.getClientsByRoom(room.id);
-			
-				var context = {
-					'room': room,
-					'username': username,
-					'members': members,
-					'messages': messages,
-					'tasks': tasks,
-					'statusMap': config.STATUS_MAP
-				};
-				
-				response.json(context);
+				dbops.getOpenTasksForRoom(roomID, function(error, tasks) {
+					if(error) {
+						response.json({ 'error': 'Request failed' });
+						return;
+					}
+					
+					for(var i=0; i<messages.length; i++) {
+						var message = messages[i];
+						message.authorDisplayName = usersDictionary[message.author].display_name;
+					}
+					
+					for(var i=0; i<tasks.length; i++) {
+						var task = tasks[i];
+						task.authorDisplayName = usersDictionary[task.author].display_name;
+					};
+					
+					var memberIdentifiers = clientDirectory.getClientsByRoom(room.id);
+					
+					var members = memberIdentifiers.map(function(member) {
+						return usersDictionary[member];
+					});
+					
+					var context = {
+						'room': room,
+						'username': username,
+						'displayName': displayName,
+						'members': members,
+						'messages': messages,
+						'tasks': tasks,
+						'statusMap': config.STATUS_MAP
+					};
+					
+					response.json(context);
+				});
 			});
 		});
 	});
@@ -254,19 +301,31 @@ app.get('/rooms/:roomID/archive/messages.json', function(request, response) {
 			return;
 		}
 			
-		dbops.getMessagesForRoom(roomID, false, function(error, messages) {		
+		dbops.getUsersDictionary(function(error, usersDictionary) {
 			if(error) {
 				response.json({ 'error': 'Request failed' });
 				return;
 			}
 			
-			var context = {
-				'room': room,
-				'username': username,
-				'messages': messages
-			};
-			
-			response.json(context);
+			dbops.getMessagesForRoom(roomID, false, function(error, messages) {		
+				if(error) {
+					response.json({ 'error': 'Request failed' });
+					return;
+				}
+				
+				for(var i=0; i<messages.length; i++) {
+					var message = messages[i];
+					message.authorDisplayName = usersDictionary[message.author].display_name;
+				}
+				
+				var context = {
+					'room': room,
+					'username': username,
+					'messages': messages
+				};
+				
+				response.json(context);
+			});
 		});
 	});
 });
@@ -288,20 +347,33 @@ app.get('/rooms/:roomID/archive/tasks.json', function(request, response) {
 			return;
 		}
 		
-		dbops.getAllTasksForRoom(roomID, function(error, tasks) {
+		
+		dbops.getUsersDictionary(function(error, usersDictionary) {
 			if(error) {
 				response.json({ 'error': 'Request failed' });
 				return;
 			}
 			
-			var context = {
-				'room': room,
-				'username': username,
-				'tasks': tasks,
-				'statusMap': config.STATUS_MAP
-			};
-			
-			response.json(context);
+			dbops.getAllTasksForRoom(roomID, function(error, tasks) {
+				if(error) {
+					response.json({ 'error': 'Request failed' });
+					return;
+				}
+				
+				for(var i=0; i<tasks.length; i++) {
+					var task = tasks[i];
+					task.authorDisplayName = usersDictionary[task.author].display_name;
+				};
+				
+				var context = {
+					'room': room,
+					'username': username,
+					'tasks': tasks,
+					'statusMap': config.STATUS_MAP
+				};
+				
+				response.json(context);
+			});
 		});
 	});
 });
@@ -503,7 +575,12 @@ app.post('/add_task/:roomID', function(request, response) {
 				return tag.id;
 			});
 			
-			createNewTags(selectedTags, preexistingTagIdentifiers, function(allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
+			createNewTags(selectedTags, preexistingTagIdentifiers, function(error, allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
+				if(error) {
+					response.json({ 'error': 'Request failed' });
+					return;
+				}
+				
 				dbops.createTask(roomID, author, request.body.title, highPriority, request.body.content, function(error, taskID, submitTime) {
 					if(error) {
 						response.json({ 'error': 'Request failed' });
@@ -551,23 +628,26 @@ app.post('/signin', function(request, response) {
 	
 	var username = request.body.username;
 	
-	dbops.getUser(username, function(error, user) {
+	dbops.getUserWithPassword(username, function(error, userWithPassword) {
 		if(error) {
 			response.json({ 'error': 'Username is invalid' });
 			return;
 		}
 	
-		request.session.user = user;
-		
-		var valid_password = verifyPasswordHash(user, request.body.client_salted_hash, request.body.client_salt, request.session.server_salt);
+		var valid_password = verifyPasswordHash(userWithPassword, request.body.client_salted_hash, request.body.client_salt, request.session.server_salt);
 		
 		if(valid_password) {
 			delete request.session.server_salt;
 			request.session.active = true;
 			
+			delete userWithPassword.password_hash
+			request.session.user = userWithPassword;
+			
 			response.json({ 'success': true });
+			return;
 		} else {
 			response.json({ 'error': 'Password is incorrect' });
+			return;
 		}
 	});
 });
@@ -575,12 +655,12 @@ app.post('/signin', function(request, response) {
 app.post('/signup', function(request, response) {
 	reportRequest(request);
 	
-	var role_access = getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
+	var roleAccess = getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
 	
-	if(!role_access) {
+	if(!roleAccess) {
 		response.json({ 'error': 'Access code is incorrect' });
 	} else {
-		dbops.createUser(request.body.username, request.body.hashed_password, role_access, function(error) {
+		dbops.createUser(request.body.username, request.body.hashed_password, roleAccess, request.body.display_name, function(error) {
 			if(error) {
 				response.json({ 'error': 'Request username is already in use' });
 			} else {
@@ -639,7 +719,8 @@ app.get('/rooms/:roomID', function(request, response) {
 		var context = {
 			'room': room,
 			'username': username,
-			'upload_path': config.UPLOAD_PATH
+			'upload_path': config.UPLOAD_PATH,
+			'display_name': request.session.user.display_name
 		};
 		
 		response.render('room.html', context);
@@ -665,7 +746,8 @@ app.get('/rooms/:roomID/archive/messages', function(request, response) {
 		
 		var context = {
 			'room': room,
-			'username': username
+			'username': username,
+			'display_name': request.session.user.display_name
 		};
 		
 		response.render('message_archive.html', context);
@@ -692,7 +774,8 @@ app.get('/rooms/:roomID/archive/tasks', function(request, response) {
 		var context = {
 			'room': room,
 			'username': username,
-			'upload_path': config.UPLOAD_PATH
+			'upload_path': config.UPLOAD_PATH,
+			'display_name': request.session.user.display_name
 		};
 		
 		response.render('task_archive.html', context);
@@ -716,7 +799,8 @@ app.get('/add_task/:roomID', function(request, response) {
 		
 		var context = {
 			'username': request.session.user.username,
-			'room_id': request.params.roomID
+			'room_id': request.params.roomID,
+			'display_name': request.session.user.display_name
 		};
 		
 		response.render('add_task.html', context);
@@ -739,7 +823,8 @@ app.get('/manage_rooms', function(request, response) {
 		
 		var context = {
 			'username': request.session.user.username,
-			'room_list': roomsList
+			'room_list': roomsList,
+			'display_name': request.session.user.display_name
 		};
 		
 		response.render('manage_rooms.html', context);
@@ -768,7 +853,8 @@ app.get('/index', function(request, response) {
 	
 		var context = {
 			'username': request.session.user.username,
-			'room_list': roomsList
+			'room_list': roomsList,
+			'display_name': request.session.user.display_name
 		};
 		response.render('index.html', context);
 	});
@@ -905,7 +991,7 @@ function validStatus(status) {
 // callback called with arg which is a list of the tag IDs of both new and preexisting selected tags
 function createNewTags(selectedTags, preexistingTags, callback) {
 	if(!selectedTags) {
-		callback([]);
+		callback(error, []);
 		return;
 	}
 
@@ -926,9 +1012,14 @@ function createNewTags(selectedTags, preexistingTags, callback) {
 		}
 	}
 	
-	dbops.createTags(newTagNames, function(newTagIdentifiers) {
+	dbops.createTags(newTagNames, function(error, newTagIdentifiers) {
+		if(error) {
+			callback(error);
+			return;
+		}
+		
 		var selectedTagIdentifiers = oldTagIdentifiers.concat(newTagIdentifiers);
-		callback(selectedTagIdentifiers);
+		callback(false, selectedTagIdentifiers);
 	});
 }
 

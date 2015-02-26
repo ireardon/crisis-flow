@@ -66,7 +66,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		socket.on('error', function(message) { // message is an event object for some reason, not a string
 			console.error(message);
 			console.error('Error: Web socket disconnected');
-			alert('Error: Web socket disconnected: ' + message);
+			alert('Error: Web socket disconnected!');
 			window.location.href = '/';
 		});
 		
