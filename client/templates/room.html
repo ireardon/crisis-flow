@@ -51,7 +51,7 @@
 								<span class="left_arrow">&#10152;</span>
 								<span>Revert to {{ statusStrings[task.status - 1] }}</span>
 							</button>
-							<button ng-click="advanceTaskStatus(task.id)" ng-show="task.status < 2" type="button" class="task_status_advance btn btn-primary">
+							<button ng-click="advanceTaskStatus(task.id)" ng-show="task.status < 3" type="button" class="task_status_advance btn btn-primary">
 								<span>Mark as {{ statusStrings[task.status + 1] }}</span>
 								<span>&#10152;</span>
 							</button>
@@ -70,7 +70,7 @@
 				<div id="tasks">
 					<div id="task_wrapper">
 						<!-- task entry in task queue -->
-						<div ng-repeat="task in tasks | orderBy:'time':true track by task.id" ng-if="task.status >= 0 && task.status < 2" id="task_{{ task.id }}" 
+						<div ng-repeat="task in tasks | orderBy:'time':true track by task.id" ng-if="task.status >= 0 && task.status < 3" id="task_{{ task.id }}" 
 						class="task" data-toggle="tooltip" data-placement="right" data-task-time="{{ task.time }}">
 							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
 							<a class="task_title bold" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>

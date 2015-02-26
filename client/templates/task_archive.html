@@ -51,7 +51,7 @@
 								<span class="left_arrow">&#10152;</span>
 								<span>Revert to {{ statusStrings[task.status - 1] }}</span>
 							</button>
-							<button ng-click="advanceTaskStatus(task.id)" ng-show="task.status < 2" type="button" class="task_status_advance btn btn-primary">
+							<button ng-click="advanceTaskStatus(task.id)" ng-show="task.status < 3" type="button" class="task_status_advance btn btn-primary">
 								<span>Mark as {{ statusStrings[task.status + 1] }}</span>
 								<span>&#10152;</span>
 							</button>

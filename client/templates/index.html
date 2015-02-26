@@ -12,9 +12,11 @@
 			<div class="row">
 				<h2>Rooms</h2>
 			</div>
+			<% if @access_role == 1 : %>
 			<div class="row centered">
 				<a href="/manage_rooms">Create a new room or manage existing rooms.</a>
 			</div>
+			<% end %>
 			<div id="rooms_list">
 				<% for room in @room_list : %>
 					<div class="room" data_room_id="<%- room.id %>">

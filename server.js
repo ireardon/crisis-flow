@@ -851,8 +851,11 @@ app.get('/index', function(request, response) {
 			room.num_members = members.length;
 		});
 	
+		console.log(request.session.user.role);
+	
 		var context = {
 			'username': request.session.user.username,
+			'access_role': request.session.user.role,
 			'room_list': roomsList,
 			'display_name': request.session.user.display_name
 		};
