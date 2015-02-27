@@ -113,7 +113,7 @@
 			<div id="sidebar_content">
 				<h4>Members</h4>
 				<div id="members">
-					<p class="member" ng-repeat="member in members | orderBy:'username' track by member.username">{{ member.displayName }} <span ng-show="member.idle">(<span class="italic">away</span>)</span></p>
+					<p class="member" ng-repeat="member in members | orderBy:'username' track by member.username">{{ member.display_name }} <span ng-show="member.idle">(<span class="italic">away</span>)</span></p>
 				</div>
 				<div id="sidebar_bottom_links">
 					<div class="bottom_link">

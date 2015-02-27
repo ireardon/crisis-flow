@@ -36,9 +36,11 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 				});
 				$scope.members.push({
 					username: $scope.username,
-					displayName: $scope.displayName,
+					display_name: $scope.displayName,
 					idle: false
 				});
+				
+				console.log($scope.members);
 				
 				$scope.minimumTaskStatus = 0;
 				$scope.maximumTaskStatus = 1;
@@ -63,7 +65,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 				$event.preventDefault();
 				$scope.addMessage();
 			}
-		}; 
+		};
 		
 		$scope.initReply = function(messageID) {
 			var message = getEntryByID($scope.messages, messageID);
@@ -72,7 +74,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			
 			$('#input_message').data('reply-target-author', $scope.replyTargetAuthorDisplayName);
 			$('#input_message').popover('show');
-		}
+		};
 		
 		$scope.displayCrisisTasks = function() {
 			$scope.minimumTaskStatus = 0;
@@ -96,7 +98,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			
 			$('#input_message').data('reply-target-author', $scope.replyTargetAuthorDisplayName);
 			$('#input_message').popover('hide');
-		}
+		};
 		
 		$scope.formatTaskTime = function(taskID) {
 			var task = getEntryByID($scope.tasks, taskID);
@@ -201,16 +203,18 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		});
 		
 		socket.on('membership_change', function(members) {
+			console.log('membership change');
 			$scope.members = members.map(function(member) {
 				member.idle = false;
 				return member;
 			});
 			$scope.members.push({
 				username: $scope.username,
-				displayName: $scope.displayName,
+				display_name: $scope.displayName,
 				idle: false
 			});
 			
+			console.log($scope.members);
 			$scope.$apply();
 		});
 		
@@ -238,7 +242,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		});
 		
 		socket.on('stc_user_idle', function(username) {
-			var member = getUserByUsername($scope.members, username);
+			var member = getMemberByUsername($scope.members, username);
 			if(member) {
 				member.idle = true;
 				$scope.$apply();
@@ -246,7 +250,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		});
 		
 		socket.on('stc_user_active', function(username) {
-			var member = getUserByUsername($scope.members, username);
+			var member = getMemberByUsername($scope.members, username);
 			if(member) {
 				member.idle = false;
 				$scope.$apply();
@@ -351,7 +355,7 @@ function getEntryByID(list, id) {
 	return entry;
 }
 
-function getUserByUsername(list, username) {
+function getMemberByUsername(list, username) {
 	var user = false;
 	list.forEach(function(element) {
 		if(element.username === username) {

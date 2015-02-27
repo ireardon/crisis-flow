@@ -114,6 +114,7 @@ io.sockets.on('connection', function(socket) {
 				return usersDictionary[userID];
 			});
 		
+			console.log(clients);
 			socket.broadcast.to(socket.room).emit('membership_change', clients);
 		});
 	});
@@ -1028,12 +1029,22 @@ function createNewTags(selectedTags, preexistingTags, callback) {
 
 function attachFilesToTask(task, files, callback) {
 	if(files.length === 0) {
-		callback();
+		callback(false);
 	} else {
 		var file = files.pop();
 		
-		dbops.createAttachment(file, function(attachmentID) {
-			dbops.createTaskAttachment(task, attachmentID, function() {
+		dbops.createAttachment(file, function(error, attachmentID) {
+			if(error) {
+				callback(error);
+				return;
+			}
+			
+			dbops.createTaskAttachment(task, attachmentID, function(error) {
+				if(error) {
+					callback(error);
+					return;
+				}
+				
 				attachFilesToTask(task, files, callback);
 			});
 		});
