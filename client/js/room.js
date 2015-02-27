@@ -29,6 +29,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 				$scope.statusStrings = data.statusMap;
 				$scope.replyTargetMessage = -1;
 				$scope.replyTargetAuthorDisplayName = -1;
+				
 				$scope.members = data.members.map(function(member) {
 					member.idle = false;
 					return member;
@@ -38,6 +39,9 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 					displayName: $scope.displayName,
 					idle: false
 				});
+				
+				$scope.minimumTaskStatus = 0;
+				$scope.maximumTaskStatus = 1;
 				
 				$scope.$apply();
 			
@@ -69,6 +73,22 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			$('#input_message').data('reply-target-author', $scope.replyTargetAuthorDisplayName);
 			$('#input_message').popover('show');
 		}
+		
+		$scope.displayCrisisTasks = function() {
+			$scope.minimumTaskStatus = 0;
+			$scope.maximumTaskStatus = 1;
+			
+			$('#crisis_tasks').toggleClass('tab-selected');
+			$('#committee_tasks').toggleClass('tab-selected');
+		};
+		
+		$scope.displayCommitteeTasks = function() {
+			$scope.minimumTaskStatus = 2;
+			$scope.maximumTaskStatus = 2;
+			
+			$('#crisis_tasks').toggleClass('tab-selected');
+			$('#committee_tasks').toggleClass('tab-selected');
+		};
 		
 		destroyReply = $scope.destroyReply = function() {
 			$scope.replyTargetMessage = -1;
@@ -120,8 +140,6 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			};
 			
 			socket.emit('cts_message', messageData);
-			console.log('emitting');
-			console.log(messageData);
 			
 			$scope.destroyReply();
 			

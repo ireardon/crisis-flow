@@ -21,6 +21,10 @@
 	color: #141313;
 }
 
+.width-50 {
+	width: 50%;
+}
+
 #task_title {
 	max-width: 500px;
 	display: inline-block;

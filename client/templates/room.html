@@ -63,14 +63,16 @@
 		</div>
 		<% include "navbar.html" %>
 		<div id="body_content">
-			<div class="row">
+			<div class="slim-row">
 				<h2>{{ room.name }}</h2>
 			</div>
 			<div id="task_content">
+				<button id="crisis_tasks" class="btn btn-task-tab tab-selected" ng-click="displayCrisisTasks()">Crisis Tasks</button>
+				<button id="committee_tasks" class="btn btn-task-tab" ng-click="displayCommitteeTasks()">Committee Tasks</button>
 				<div id="tasks">
 					<div id="task_wrapper">
 						<!-- task entry in task queue -->
-						<div ng-repeat="task in tasks | orderBy:'time':true track by task.id" ng-if="task.status >= 0 && task.status < 3" id="task_{{ task.id }}" 
+						<div ng-repeat="task in tasks | orderBy:'time':true track by task.id" ng-if="task.status >= minimumTaskStatus && task.status <= maximumTaskStatus" id="task_{{ task.id }}" 
 						class="task" data-toggle="tooltip" data-placement="right" data-task-time="{{ task.time }}">
 							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
 							<a class="task_title bold" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>

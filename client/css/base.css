@@ -48,6 +48,11 @@ a.btn {
 	color: white;
 }
 
+.btn-themed:focus {
+	background-color: #17C298;
+	color: white;
+}
+
 a {
 	cursor: pointer;
 	text-decoration: none;
@@ -67,8 +72,9 @@ a {
 	margin-bottom: 20px;
 }
 
-.text_centered {
-	text-align: center;
+.slim-row {
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .shrink_to_content {

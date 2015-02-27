@@ -994,7 +994,7 @@ function validStatus(status) {
 // callback called with arg which is a list of the tag IDs of both new and preexisting selected tags
 function createNewTags(selectedTags, preexistingTags, callback) {
 	if(!selectedTags) {
-		callback(error, []);
+		callback(false, []);
 		return;
 	}
 

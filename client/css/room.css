@@ -41,6 +41,7 @@
 }
 
 #messaging_content {
+	margin-top: 20px;
 	margin-left: 3%;
 	display: inline-block;
 	width: 52%;
@@ -101,6 +102,36 @@
 	margin-right: 5px;
 }
 
+.btn-task-tab {
+	border: 2px solid #141313;
+	background-color: rgba(255, 255, 255, 0.05);
+	color: #B5B5B5;
+}
+
+.btn-task-tab:focus {
+	outline: none;
+	color: #B5B5B5;
+}
+
+.btn-task-tab:active {
+	outline: none !important;
+}
+
+.btn-task-tab:hover {
+	background-color: #141313;
+	color: #B5B5B5;
+}
+
+.btn-task-tab.tab-selected {
+	background-color: rgba(255, 255, 255, 0.15);
+	color: #E3E3E3;
+}
+
+.btn-task-tab.tab-selected:hover {
+	background-color: #141313;
+	color: #B5B5B5;
+}
+
 .task {
 	margin-bottom: 2px;
 	padding: 5px 11px;
@@ -138,6 +169,7 @@
 	display: block;
 	margin-top: 3px;
 	margin-bottom: 2px;
+	clear: both;
 }
 
 .task_tags {
@@ -179,10 +211,14 @@ a:hover.attachment_link { /* we want default bootstrap link colors for these */
 	margin-right: 3px;
 }
 
+.task_author {
+	display: inline-block;
+}
+
 .task_status {
 	text-align: right;
-	right: 11px;
-	position: absolute;
+	float: right;
+	display: inline-block;
 }
 
 .message {

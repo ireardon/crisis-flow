@@ -29,8 +29,8 @@ var STATUS_CANCELLED = 4;
 var STATUS_MAP = {};
 STATUS_MAP[STATUS_SUBMITTED] = 'Submitted';
 STATUS_MAP[STATUS_IN_PROGRESS] = 'In Progress';
-STATUS_MAP[STATUS_IN_REVIEW] = 'In Review';
-STATUS_MAP[STATUS_COMPLETED] = 'Completed';
+STATUS_MAP[STATUS_IN_REVIEW] = 'Completed by Crisis';
+STATUS_MAP[STATUS_COMPLETED] = 'Finished';
 STATUS_MAP[STATUS_CANCELLED] = 'Cancelled';
 
 // the default number of most recent messages to display in a room
