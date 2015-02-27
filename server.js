@@ -603,7 +603,7 @@ app.post('/add_task/:roomID', function(request, response) {
 								'id': taskID,
 								'room': roomID,
 								'author': author,
-								'authorDisplayName': socket.session.user.display_name,
+								'authorDisplayName': request.session.user.display_name,
 								'title': request.body.title,
 								'status': config.STATUS_SUBMITTED,
 								'high_priority': highPriority,
