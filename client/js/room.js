@@ -29,6 +29,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 				$scope.statusStrings = data.statusMap;
 				$scope.replyTargetMessage = -1;
 				$scope.replyTargetAuthorDisplayName = -1;
+				$scope.audioEnabled = true;
 				
 				$scope.members = data.members.map(function(member) {
 					member.idle = false;
@@ -104,6 +105,20 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			var task = getEntryByID($scope.tasks, taskID);
 			var niceTime = moment.unix(task.time).format('h:mma [on] MMM D, YYYY');
 			return niceTime;
+		};
+		
+		$scope.toggleAudio = function() {
+			var $audioIcon = $('#audio_icon');
+			
+			if($scope.audioEnabled) {
+				$audioIcon.removeClass('glyphicon-volume-up');
+				$audioIcon.addClass('glyphicon-volume-off');
+				$scope.audioEnabled = false;
+			} else {
+				$audioIcon.removeClass('glyphicon-volume-off');
+				$audioIcon.addClass('glyphicon-volume-up');
+				$scope.audioEnabled = true;
+			}
 		};
 		
 		getReplyTargetAuthorDisplayName = $scope.getReplyTargetAuthorDisplayName = function(replyTargetID) {
@@ -236,6 +251,9 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			var atBottom = scrolledToBottom('#messages');
 			$scope.$apply();
 			
+			if($scope.audioEnabled) {
+				playNotification();
+			}
 			if(atBottom) {
 				scrollBottom('#messages');
 			}
@@ -394,6 +412,10 @@ function scrollBottom(elementID) {
 	// we must use the DOM scrollHeight attribute, as the height
 	// attribute accessible through jQuery measures only the visible portion
 	$display.scrollTop($display.get(0).scrollHeight + 1);
+}
+
+function playNotification() {
+	document.getElementById('notification_audio').play();
 }
 
 function getMillisecondTime() {

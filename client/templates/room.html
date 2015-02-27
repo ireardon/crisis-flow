@@ -18,6 +18,7 @@
 		</script>
 	</head>
 	<body ng-controller="ContextController">
+		<audio id="notification_audio" src="/audio/notification.mp3" type="hidden"></audio>
 		<div id="task_detail_modals" ng-repeat="task in tasks track by task.id">
 			<!-- modal dialog containing task details (starts hidden) -->
 			<div id="task_detail_{{ task.id }}" class="task_detail modal fade" role="dialog" aria-hidden="true">
@@ -106,6 +107,7 @@
 					placeholder="Hi, {{ displayName }}! Say something…">
 					</textarea>
 					<button id="send_message" class="btn btn-themed" type="submit">Send</button>
+					<div id="audio_icon" ng-click="toggleAudio()" class="glyphicon glyphicon-volume-up"></div>
 				</form>
 			</div>
 		</div>

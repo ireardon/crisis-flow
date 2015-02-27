@@ -138,7 +138,7 @@
 	border: 1px solid #141313;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
-	border-radius: 3px;
+	border-radius: 5px;
 	overflow: hidden;
 }
 
@@ -274,4 +274,17 @@ a:hover.attachment_link { /* we want default bootstrap link colors for these */
 	right: 25px;
 	position: absolute;
 	margin: auto;
+}
+
+#audio_icon {
+	display: inline-block;
+	vertical-align: center;
+	border: 1px solid white;
+	-moz-border-radius: 3px;
+	-webkit-border-radius: 3px;
+	border-radius: 3px;
+	padding: 2px;
+	color: white;
+	margin-left: 5px;
+	cursor: pointer;
 }
