@@ -91,6 +91,7 @@ io.sockets.on('connection', function(socket) {
 	if(!sessionValid(socket.session)) {
 		socket.emit('recoverableError', "Session is invalid");
 		socket.disconnect();
+		return;
 	}
 	
 	socket.user = socket.session.user.username;

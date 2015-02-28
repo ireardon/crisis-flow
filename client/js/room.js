@@ -1,4 +1,3 @@
-var TYPE_DELAY = 2000;
 var TIME_REFRESH_DELAY = 15000;
 var members_typing_cooldown = {};
 var members_typing_flag = {};
@@ -82,6 +81,8 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			$('#crisis_tasks').addClass('tab-selected');
 			$('#committee_tasks').removeClass('tab-selected');
 			$('#archived_tasks').removeClass('tab-selected');
+			
+			refreshTimeagos();
 		};
 		
 		$scope.displayCommitteeTasks = function() {
@@ -91,6 +92,8 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			$('#crisis_tasks').removeClass('tab-selected');
 			$('#committee_tasks').addClass('tab-selected');
 			$('#archived_tasks').removeClass('tab-selected');
+			
+			refreshTimeagos();
 		};
 		
 		$scope.displayArchivedTasks = function() {
@@ -100,6 +103,8 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			$('#crisis_tasks').removeClass('tab-selected');
 			$('#committee_tasks').removeClass('tab-selected');
 			$('#archived_tasks').addClass('tab-selected');
+			
+			refreshTimeagos();
 		};
 		
 		destroyReply = $scope.destroyReply = function() {
