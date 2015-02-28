@@ -79,16 +79,27 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			$scope.minimumTaskStatus = 0;
 			$scope.maximumTaskStatus = 1;
 			
-			$('#crisis_tasks').toggleClass('tab-selected');
-			$('#committee_tasks').toggleClass('tab-selected');
+			$('#crisis_tasks').addClass('tab-selected');
+			$('#committee_tasks').removeClass('tab-selected');
+			$('#archived_tasks').removeClass('tab-selected');
 		};
 		
 		$scope.displayCommitteeTasks = function() {
 			$scope.minimumTaskStatus = 2;
 			$scope.maximumTaskStatus = 2;
 			
-			$('#crisis_tasks').toggleClass('tab-selected');
-			$('#committee_tasks').toggleClass('tab-selected');
+			$('#crisis_tasks').removeClass('tab-selected');
+			$('#committee_tasks').addClass('tab-selected');
+			$('#archived_tasks').removeClass('tab-selected');
+		};
+		
+		$scope.displayArchivedTasks = function() {
+			$scope.minimumTaskStatus = 3;
+			$scope.maximumTaskStatus = 4;
+			
+			$('#crisis_tasks').removeClass('tab-selected');
+			$('#committee_tasks').removeClass('tab-selected');
+			$('#archived_tasks').addClass('tab-selected');
 		};
 		
 		destroyReply = $scope.destroyReply = function() {

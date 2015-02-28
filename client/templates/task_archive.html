@@ -40,6 +40,12 @@
 							<div class="task_content">
 								<p>{{ task.content }}</p>
 							</div>
+							<div class="task_followups">
+								<div class="task_followup" ng-repeat="followup in task.followups | orderBy:'time':false track by followup.id">
+									<h5 class="modal-heading">Followup:</h5>
+									<p>{{ followup.content }}</p>
+								</div>
+							</div>
 						</div>
 						<div class="modal-footer">
 							<div ng-show="task.attachments.length" class="task_attachments">
