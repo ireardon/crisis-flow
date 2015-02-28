@@ -27,7 +27,6 @@ $(document).ready(function() {
 		};
 		
 		$.post('/signup', post_data, function(response) {
-			console.log(response);
 			if(response.error) {
 				alert(response.error);
 			} else {

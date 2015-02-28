@@ -18,7 +18,8 @@
 		</script>
 	</head>
 	<body ng-controller="ContextController">
-		<audio id="notification_audio" src="/audio/notification.mp3" type="hidden"></audio>
+		<audio id="message_audio" src="/audio/message_notification.mp3" type="hidden"></audio>
+		<audio id="task_audio" src="/audio/task_notification.ogg" type="hidden"></audio>
 		<div id="task_detail_modals" ng-repeat="task in tasks track by task.id">
 			<!-- modal dialog containing task details (starts hidden) -->
 			<div id="task_detail_{{ task.id }}" class="task_detail modal fade" role="dialog" aria-hidden="true">
@@ -39,7 +40,16 @@
 						</div>
 						<div class="modal-body">
 							<div class="task_content">
+								<h5 class="modal-heading">Task:</h5>
 								<p>{{ task.content }}</p>
+							</div>
+							<div class="task_followups">
+								<div class="task_followup" ng-repeat="followup in task.followups | orderBy:'time':false track by followup.id">
+									<h5 class="modal-heading">Followup:</h5>
+									<p>{{ followup.content }}</p>
+								</div>
+								<textarea class="followup-entry form-control" ng-model="task.followupContent"></textarea>
+								<button class="btn btn-primary" ng-click="addTaskFollowup(task.id)">Add followup</button>
 							</div>
 						</div>
 						<div class="modal-footer">

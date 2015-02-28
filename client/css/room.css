@@ -1,3 +1,7 @@
+p {
+	white-space: pre-line;
+}
+
 #tasks {
 	background-color: rgba(255, 255, 255, 0.1);
 	-moz-box-shadow: 1px 1px 3px 3px #141313; /*3D3D3D*/
@@ -254,7 +258,7 @@ a:hover.attachment_link { /* we want default bootstrap link colors for these */
 }
 
 #input_message {
-	width: 85%;
+	width: 82%;
 	resize: none;
 	overflow: auto;
 }
@@ -266,6 +270,26 @@ a:hover.attachment_link { /* we want default bootstrap link colors for these */
 .bottom_link {
 	margin-left: auto;
 	margin-right: auto;
+	margin-bottom: 5px;
+}
+
+div.modal-body {
+	height: 300px;
+	overflow: auto;
+	padding: 10px 20px;
+}
+
+.modal-heading {
+	margin-top: 5px;
+	margin-bottom: 5px;
+	color: black;
+	font-weight: bold;
+}
+
+.followup-entry {
+	resize: vertical;
+	max-height: 200px;
+	overflow: auto;
 	margin-bottom: 5px;
 }
 

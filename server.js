@@ -89,7 +89,7 @@ io.sockets.on('connection', function(socket) {
 	
 	// check that this socket is associated with a valid session
 	if(!sessionValid(socket.session)) {
-		socket.emit('error', "Session is invalid");
+		socket.emit('recoverableError', "Session is invalid");
 		socket.disconnect();
 	}
 	
@@ -106,7 +106,7 @@ io.sockets.on('connection', function(socket) {
 		
 		dbops.getUsersDictionary(function(error, usersDictionary) {
 			if(error) {
-				response.json({ 'error': 'Request failed' });
+				socket.emit('recoverableError', "Failed to join");
 				return;
 			}
 			
@@ -124,7 +124,7 @@ io.sockets.on('connection', function(socket) {
 		report.debug('MESSAGE RECEIVED');
 		dbops.createMessage(socket.room, socket.user, message.reply, message.content, function(error, messageID, submitTime) {
 			if(error) {
-				socket.emit('error', "Message failed to send.");
+				socket.emit('recoverableError', "Message failed to send.");
 				return;
 			}
 			
@@ -152,10 +152,32 @@ io.sockets.on('connection', function(socket) {
 		
 		dbops.updateTaskStatus(taskID, oldStatus, newStatus, function(error) {
 			if(error) {
-				socket.emit('error', "Failed to update task status.");
+				socket.emit('recoverableError', "Failed to update task status.");
+				return;
 			}
 			
 			socket.broadcast.to(socket.room).emit('stc_task_status_changed', taskID, newStatus);
+		});
+	});
+	
+	socket.on('cts_followup_task', function(followup) {
+		console.log('got followup!');
+		dbops.createTaskFollowup(followup.task, followup.content, followup.author, function(error, taskFollowupID, submitTime) {
+			if(error) {
+				socket.emit('recoverableError', "Failed to create a task followup.");
+				return;
+			}
+			
+			var taskFollowupData = {
+				'id': taskFollowupID,
+				'author': followup.author,
+				'task': followup.task,
+				'content': followup.content,
+				'time': submitTime
+			};
+			
+			console.log(taskFollowupData);
+			io.sockets.in(socket.room).emit('stc_followup_task', taskFollowupData);
 		});
 	});
 	
@@ -197,7 +219,7 @@ io.sockets.on('connection', function(socket) {
 			
 			dbops.getUsersDictionary(function(error, usersDictionary) {
 				if(error) {
-					response.json({ 'error': 'Request failed' });
+					socket.emit('recoverableError', "Leave failed");
 					return;
 				}
 				
@@ -594,7 +616,12 @@ app.post('/add_task/:roomID', function(request, response) {
 							return;
 						}
 						
-						attachFilesToTask(taskID, files, function() {
+						attachFilesToTask(taskID, files, function(error) {
+							if(error) {
+								response.json({ 'error': 'Request failed' });
+								return;
+							}
+							
 							var attachments = files.map(function(file) {
 								return {'user_filename': file.orginalname, 'internal_filename': file.name};
 							});	
@@ -610,7 +637,8 @@ app.post('/add_task/:roomID', function(request, response) {
 								'content': request.body.content,
 								'time': submitTime,
 								'tags': allSelectedTags,
-								'attachments': attachments
+								'attachments': attachments,
+								'followups': []
 							};
 							
 							io.sockets.in(roomID).emit('stc_add_task', taskData);

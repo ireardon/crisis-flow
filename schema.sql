@@ -56,6 +56,15 @@ CREATE TABLE tasks (
 	FOREIGN KEY(author) REFERENCES users(username)
 );
 
+CREATE TABLE task_followups (
+	id INTEGER PRIMARY KEY,
+	task INTEGER,
+	content TEXT,
+	author TEXT,
+	time INTEGER,
+	FOREIGN KEY(task) REFERENCES tasks(id)
+);
+
 CREATE TABLE tags (
 	id INTEGER PRIMARY KEY,
 	name TEXT

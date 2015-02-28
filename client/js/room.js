@@ -41,8 +41,6 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 					idle: false
 				});
 				
-				console.log($scope.members);
-				
 				$scope.minimumTaskStatus = 0;
 				$scope.maximumTaskStatus = 1;
 				
@@ -168,6 +166,30 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			return false;
 		};
 		
+		$scope.addTaskFollowup = function(taskID) {
+			var task = getEntryByID($scope.tasks, taskID);
+			
+			if(!task.followupContent) {
+				return false;
+			}
+			
+			var followupData = {
+				'task': taskID,
+				'author': global_username,
+				'content': task.followupContent
+			};
+			
+			socket.emit('cts_followup_task', followupData);
+			
+			task.followupContent = '';
+			
+			return false;
+		};
+		
+		$scope.followupEntry = function(taskID) {
+			return 'followupEntry' + taskID;
+		};
+		
 		$scope.jumpToReplyTarget = function(replyTargetID) {
 			var extra = 10; // scroll slightly above the actual top of the message
 			
@@ -204,7 +226,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		  ###################################*/
 		// these functions respond to websocket messages received from the server
 		
-		socket.on('error', function(message) { // message is an event object for some reason, not a string
+		socket.on('recoverableError', function(message) { // message is an event object for some reason, not a string
 			console.error(message);
 			console.error('Error: Web socket disconnected');
 			alert('Error: Web socket disconnected!');
@@ -218,7 +240,6 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 		});
 		
 		socket.on('membership_change', function(members) {
-			console.log('membership change');
 			$scope.members = members.map(function(member) {
 				member.idle = false;
 				return member;
@@ -229,7 +250,6 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 				idle: false
 			});
 			
-			console.log($scope.members);
 			$scope.$apply();
 		});
 		
@@ -237,12 +257,21 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			$scope.tasks.push(newTask);
 			$scope.$apply();
 			
-			scrollBottom('#tasks');
+			if($scope.audioEnabled) {
+				playTaskNotification();
+			}
 		});
 		
 		socket.on('stc_task_status_changed', function(taskID, newStatus) {
 			var task = getEntryByID($scope.tasks, taskID);
 			task.status = newStatus;
+			$scope.$apply();
+		});
+		
+		socket.on('stc_followup_task', function(taskFollowup) {
+			console.log(taskFollowup);
+			var task = getEntryByID($scope.tasks, taskFollowup.task);
+			task.followups.push(taskFollowup);
 			$scope.$apply();
 		});
 		
@@ -252,7 +281,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 			$scope.$apply();
 			
 			if($scope.audioEnabled) {
-				playNotification();
+				playMessageNotification();
 			}
 			if(atBottom) {
 				scrollBottom('#messages');
@@ -414,8 +443,12 @@ function scrollBottom(elementID) {
 	$display.scrollTop($display.get(0).scrollHeight + 1);
 }
 
-function playNotification() {
-	document.getElementById('notification_audio').play();
+function playMessageNotification() {
+	document.getElementById('message_audio').play();
+}
+
+function playTaskNotification() {
+	document.getElementById('task_audio').play();
 }
 
 function getMillisecondTime() {

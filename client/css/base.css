@@ -81,6 +81,10 @@ a {
 	display: inline-block;
 }
 
+.form-width {
+	width: 70%;
+}
+
 form label {
 	vertical-align: middle;
 }
