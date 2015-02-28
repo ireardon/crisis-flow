@@ -268,7 +268,7 @@ app.get('/rooms/:roomID/data.json', function(request, response) {
 					return;
 				}
 				
-				dbops.getOpenTasksForRoom(roomID, function(error, tasks) {
+				dbops.getAllTasksForRoom(roomID, function(error, tasks) {
 					if(error) {
 						response.json({ 'error': 'Request failed' });
 						return;
@@ -781,34 +781,6 @@ app.get('/rooms/:roomID/archive/messages', function(request, response) {
 		};
 		
 		response.render('message_archive.html', context);
-	});
-});
-
-// get the tasks archive page for the given room
-app.get('/rooms/:roomID/archive/tasks', function(request, response) {
-	reportRequest(request);
-
-	if(!sessionValid(request.session)) {
-		response.redirect('/signin');
-		return;
-	}
-	
-	var roomID = request.params.roomID;
-	var username = request.session.user.username;
-	dbops.getRoom(roomID, function(error, room) {
-		if(error) {
-			sendNotFound(request, response);
-			return;
-		}
-		
-		var context = {
-			'room': room,
-			'username': username,
-			'upload_path': config.UPLOAD_PATH,
-			'display_name': request.session.user.display_name
-		};
-		
-		response.render('task_archive.html', context);
 	});
 });
 
