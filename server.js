@@ -115,7 +115,6 @@ io.sockets.on('connection', function(socket) {
 				return usersDictionary[userID];
 			});
 		
-			console.log(clients);
 			socket.broadcast.to(socket.room).emit('membership_change', clients);
 		});
 	});
@@ -162,7 +161,6 @@ io.sockets.on('connection', function(socket) {
 	});
 	
 	socket.on('cts_followup_task', function(followup) {
-		console.log('got followup!');
 		dbops.createTaskFollowup(followup.task, followup.content, followup.author, function(error, taskFollowupID, submitTime) {
 			if(error) {
 				socket.emit('recoverableError', "Failed to create a task followup.");
@@ -177,7 +175,6 @@ io.sockets.on('connection', function(socket) {
 				'time': submitTime
 			};
 			
-			console.log(taskFollowupData);
 			io.sockets.in(socket.room).emit('stc_followup_task', taskFollowupData);
 		});
 	});
@@ -853,8 +850,6 @@ app.get('/index', function(request, response) {
 			var members = clientDirectory.getClientsByRoom(room.id);
 			room.num_members = members.length;
 		});
-	
-		console.log(request.session.user.role);
 	
 		var context = {
 			'username': request.session.user.username,

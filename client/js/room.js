@@ -28,7 +28,7 @@ angularApp.controller('ContextController', ['$scope', function($scope) {
 				$scope.statusStrings = data.statusMap;
 				$scope.replyTargetMessage = -1;
 				$scope.replyTargetAuthorDisplayName = -1;
-				$scope.audioEnabled = true;
+				$scope.audioEnabled = false;
 				
 				$scope.members = data.members.map(function(member) {
 					member.idle = false;
