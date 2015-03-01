@@ -86,17 +86,19 @@
 						<!-- task entry in task queue -->
 						<div ng-repeat="task in tasks | orderBy:'time':true track by task.id" ng-if="task.status >= minimumTaskStatus && task.status <= maximumTaskStatus" id="task_{{ task.id }}" 
 						class="task" data-toggle="tooltip" data-placement="right" data-task-time="{{ task.time }}">
-							<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
-							<a class="task_title bold" data-toggle="modal" data-target="#task_detail_{{ task.id }}">{{ task.title }}</a>
-							<div class="task_summary">
-								<span class="task_author">From: {{ task.authorDisplayName }}</span>
-								<span class="task_status">Status: {{ statusStrings[task.status] }}</span>
-							</div>
-							<div ng-show="task.tags.length" class="task_preview_tags_list">
-								<span>Tags:</span>
-								<ul class="task_tags">
-									<li ng-repeat="tag in task.tags track by tag.id" class="task_tag">{{ tag.name }}</li>
-								</ul>
+							<div class="cursor-pointer" data-toggle="modal" data-target="#task_detail_{{ task.id }}">
+								<span ng-show="task.high_priority" class="glyphicon glyphicon-exclamation-sign"></span>
+								<span class="task_title bold">{{ task.title }}</span>
+								<div class="task_summary">
+									<span class="task_author">From: {{ task.authorDisplayName }}</span>
+									<span class="task_status">Status: {{ statusStrings[task.status] }}</span>
+								</div>
+								<div ng-show="task.tags.length" class="task_preview_tags_list">
+									<span>Tags:</span>
+									<ul class="task_tags">
+										<li ng-repeat="tag in task.tags track by tag.id" class="task_tag">{{ tag.name }}</li>
+									</ul>
+								</div>
 							</div>
 						</div>
 					</div>

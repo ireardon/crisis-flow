@@ -34,6 +34,10 @@ p {
 	font-style: italic;
 }
 
+.cursor-pointer {
+	cursor: pointer;
+}
+
 a.btn {
 	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
