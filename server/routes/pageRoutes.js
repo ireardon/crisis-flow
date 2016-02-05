@@ -1,7 +1,8 @@
 var locals = require(__localModules);
-var config = require(locals.CONFIG);
-var helper = require(locals.HELPERS);
-var dbops = require(locals.DBOPS);
+var config = require(locals.config);
+var security = require(locals.server.security);
+var errorHandler = require(locals.server.error);
+var dbops = require(locals.server.database.dbops);
 
 module.exports = function(aClientDirectory) {
 	this.clientDirectory = aClientDirectory;
@@ -23,9 +24,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getUploadedFile(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!helper.sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.redirect('/signin');
 			return;
 		}
@@ -48,9 +49,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getRoom(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!helper.sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.redirect('/signin');
 			return;
 		}
@@ -75,9 +76,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getMessageArchive(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!helper.sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.redirect('/signin');
 			return;
 		}
@@ -101,9 +102,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getAddTask(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!helper.sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.redirect('/signin');
 			return;
 		}
@@ -125,9 +126,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getManageRooms(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!helper.sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.redirect('/signin');
 			return;
 		}
@@ -149,16 +150,16 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getIndex(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!helper.sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.redirect('/signin');
 			return;
 		}
 
 		dbops.getAllRooms(function(error, roomsList) {
 			if(error) {
-				helper.sendNotFound(request, response);
+				security.sendNotFound(request, response);
 				return;
 			}
 
@@ -178,9 +179,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getSignup(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		request.session.server_salt = helper.getSaltBits();
+		request.session.server_salt = security.getSaltBits();
 
 		var context = {
 			'server_salt': request.session.server_salt
@@ -189,9 +190,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getSignin(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		request.session.server_salt = helper.getSaltBits();
+		request.session.server_salt = security.getSaltBits();
 
 		var context = {
 			'server_salt': request.session.server_salt
@@ -200,7 +201,7 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getSignout(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
 		request.session.active = false;
 

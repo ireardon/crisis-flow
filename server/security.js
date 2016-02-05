@@ -1,45 +1,17 @@
-var config = require('../config');
-var dbops = require('./database_ops');
-var report = require('./report');
 var crypto = require('crypto');
 
+var locals = require(__localModules);
+var config = require(locals.config);
+var report = require(locals.lib.report);
+var dbops = require(locals.server.database.dbops);
+
 module.exports = {
-	'sendNotFound': sendNotFound,
-	'reportRequest': reportRequest,
 	'sessionValid': sessionValid,
 	'verifyPasswordHash': verifyPasswordHash,
 	'getAccessRole': getAccessRole,
 	'validStatus': validStatus,
 	'getSaltBits': getSaltBits
 };
-
-function sendNotFound(request, response) {
-	report.debug('ISSUED 404 for URL: ' + request.url);
-
-	response.status(404);
-
-	if (request.accepts('html')) {
-		var context = { url: request.url };
-
-		if(request.session.user) {
-			context.username = request.session.user.username;
-		}
-
-		response.render('404.html', context);
-		return;
-	}
-
-	if (request.accepts('json')) {
-		response.send({ error: 'Not found' });
-		return;
-	}
-
-	response.type('txt').send('Not found');
-}
-
-function reportRequest(request) {
-	report.debug(request.method + ' ' + request.originalUrl);
-}
 
 function sessionValid(session) {
 	if(!session || !session.active) {

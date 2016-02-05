@@ -1,8 +1,21 @@
 var path = require('path');
 
-module.exports.CONFIG = path.join(__dirname, 'config');
-module.exports.DBOPS = path.join(__dirname, 'lib', 'database_ops');
-module.exports.GETCOOKIE = path.join(__dirname, 'lib', 'getcookie');
-module.exports.CLIENTDIRECTORY = path.join(__dirname, 'lib', 'ClientDirectory');
-module.exports.REPORT = path.join(__dirname, 'lib', 'report');
-module.exports.HELPERS = path.join(__dirname, 'lib', 'helpers');
+module.exports = {
+    config: path.join(__dirname, 'config'),
+    lib: {
+        ClientDirectory: path.join(__dirname, 'lib', 'ClientDirectory'),
+        getcookie: path.join(__dirname, 'lib', 'getcookie'),
+        report: path.join(__dirname, 'lib', 'report')
+    },
+    server: {
+        security: path.join(__dirname, 'server', 'security'),
+        error: path.join(__dirname, 'server', 'error'),
+        database: {
+            dbops: path.join(__dirname, 'server', 'database', 'database_ops')
+        },
+        routes: {
+            ajax: path.join(__dirname, 'server', 'routes', 'ajaxRoutes'),
+            page: path.join(__dirname, 'server', 'routes', 'pageRoutes')
+        }
+    }
+}

@@ -22,12 +22,13 @@ global.__base = __dirname;
 global.__localModules = path.join(__base, 'localModules');
 
 var locals = require(__localModules);
-var config = require(locals.CONFIG);
-var dbops = require(locals.DBOPS);
-var getcookie = require(locals.GETCOOKIE);
-var clientdir = require(locals.CLIENTDIRECTORY);
-var report = require(locals.REPORT);
-var helper = require(locals.HELPERS);
+var config = require(locals.config);
+var dbops = require(locals.server.database.dbops);
+var getcookie = require(locals.lib.getcookie);
+var clientdir = require(locals.lib.ClientDirectory);
+var report = require(locals.lib.report);
+var security = require(locals.server.security);
+var errorHandler = require(locals.server.error);
 
 /*###################################
   #          CONFIGURATION          #
@@ -69,8 +70,8 @@ clientDirectory.syncToDB(function() {
 	});
 });
 
-var page = require('./lib/pageRoutes')(clientDirectory);
-var ajax = require('./lib/ajaxRoutes')(clientDirectory);
+var page = require(locals.server.routes.page)(clientDirectory);
+var ajax = require(locals.server.routes.ajax)(clientDirectory);
 
 /*###################################
   #            SOCKET IO            #
@@ -95,7 +96,7 @@ io.sockets.on('connection', function(socket) {
 	socket.emit('stc_rejoin');
 
 	// check that this socket is associated with a valid session
-	if(!sessionValid(socket.session)) {
+	if(!security.sessionValid(socket.session)) {
 		socket.emit('recoverableError', "Session is invalid");
 		socket.disconnect();
 		return;
@@ -310,9 +311,9 @@ app.get('/signout', page.get.signout);
 
 // get the signin page if no active session, index otherwise
 app.get('/', function(request, response) {
-	reportRequest(request);
+	errorHandler.reportRequest(request);
 
-	if(!sessionValid(request.session)) {
+	if(!security.sessionValid(request.session)) {
 		response.redirect('/signin');
 	} else { // else go to the rooms index
 		response.redirect('/index');
@@ -323,79 +324,5 @@ app.get('/', function(request, response) {
   #    ERROR-HANDLING MIDDLEWARE    #
   ###################################*/
 
-app.use(helper.sendNotFound);
-
-app.use(function(error, request, response, next) {
-	report.error(error, 'The 500 handler was invoked');
-
-	var context = {};
-	if(request.session.user) {
-		context.username = request.session.user.username;
-	}
-
-	response.status(error.status || 500);
-	response.render('500.html', context);
-});
-
-/*###################################
-  #        SUPPORT FUNCTIONS        #
-  ###################################*/
-
-// callback called with arg which is a list of the tag IDs of both new and preexisting selected tags
-function createNewTags(selectedTags, preexistingTags, callback) {
-	if(!selectedTags) {
-		callback(false, []);
-		return;
-	}
-
-	if(!(selectedTags instanceof Array)) { // this is necessary because selectedTags may be a singleton
-		selectedTags = [selectedTags];
-	}
-
-	var newTagNames = [];
-	var oldTagIdentifiers = [];
-	for(var i=0; i<selectedTags.length; i++) {
-		var currentTag = selectedTags[i];
-		var index = preexistingTags.indexOf(Number(currentTag)); // coerce potential ids to numbers
-
-		if(index === -1) { // this selected tag is not preexisting
-			newTagNames.push(currentTag);
-		} else { // this selected tag is preexisting
-			oldTagIdentifiers.push(currentTag);
-		}
-	}
-
-	dbops.createTags(newTagNames, function(error, newTagIdentifiers) {
-		if(error) {
-			callback(error);
-			return;
-		}
-
-		var selectedTagIdentifiers = oldTagIdentifiers.concat(newTagIdentifiers);
-		callback(false, selectedTagIdentifiers);
-	});
-}
-
-function attachFilesToTask(task, files, callback) {
-	if(files.length === 0) {
-		callback(false);
-	} else {
-		var file = files.pop();
-
-		dbops.createAttachment(file, function(error, attachmentID) {
-			if(error) {
-				callback(error);
-				return;
-			}
-
-			dbops.createTaskAttachment(task, attachmentID, function(error) {
-				if(error) {
-					callback(error);
-					return;
-				}
-
-				attachFilesToTask(task, files, callback);
-			});
-		});
-	}
-}
+app.use(errorHandler.send404);
+app.use(errorHandler.send500);

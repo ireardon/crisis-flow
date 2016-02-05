@@ -1,7 +1,8 @@
 var locals = require(__localModules);
-var config = require(locals.CONFIG);
-var helper = require(locals.HELPERS);
-var dbops = require(locals.DBOPS);
+var config = require(locals.config);
+var security = require(locals.server.security);
+var errorHandler = require(locals.server.error);
+var dbops = require(locals.server.database.dbops);
 
 module.exports = function(aClientDirectory) {
 	this.clientDirectory = aClientDirectory;
@@ -33,9 +34,9 @@ module.exports = function(aClientDirectory) {
 	  ###################################*/
 
 	function getDataJSON(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -102,9 +103,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getMessageJSON(request, response) {
-		helper.reportRequest(request);
+		securitys.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -147,9 +148,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getTaskJSON(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -194,7 +195,7 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getTagJSON(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
 		dbops.getAllTags(function(error, tags) {
 			if(error) {
@@ -211,9 +212,9 @@ module.exports = function(aClientDirectory) {
 	  ###################################*/
 
 	function postSendMessage(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -233,9 +234,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postCreateRoom(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -253,9 +254,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postDeleteRoom(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -273,9 +274,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postRenameRoom(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -291,9 +292,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postCreateChannel(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -312,9 +313,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postDeleteChannel(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -339,9 +340,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postRenameChannel(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -357,9 +358,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postAddTask(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		if(!sessionValid(request.session)) {
+		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
 			return;
 		}
@@ -389,7 +390,7 @@ module.exports = function(aClientDirectory) {
 					return tag.id;
 				});
 
-				createNewTags(selectedTags, preexistingTagIdentifiers, function(error, allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
+				dbops.createNewTags(selectedTags, preexistingTagIdentifiers, function(error, allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
 					if(error) {
 						response.json({ 'error': 'Request failed' });
 						return;
@@ -444,7 +445,7 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postSignin(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
 		var username = request.body.username;
 
@@ -454,7 +455,7 @@ module.exports = function(aClientDirectory) {
 				return;
 			}
 
-			var valid_password = helper.verifyPasswordHash(userWithPassword, request.body.client_salted_hash, request.body.client_salt, request.session.server_salt);
+			var valid_password = security.verifyPasswordHash(userWithPassword, request.body.client_salted_hash, request.body.client_salt, request.session.server_salt);
 
 			if(valid_password) {
 				delete request.session.server_salt;
@@ -473,9 +474,9 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function postSignup(request, response) {
-		helper.reportRequest(request);
+		errorHandler.reportRequest(request);
 
-		var roleAccess = getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
+		var roleAccess = security.getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
 
 		if(!roleAccess) {
 			response.json({ 'error': 'Access code is incorrect' });

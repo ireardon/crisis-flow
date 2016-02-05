@@ -5,8 +5,8 @@ var moment = require('moment');
 var assert = require('assert'); // TODO
 
 var locals = require(__localModules);
-var config = require(locals.CONFIG);
-var report = require(locals.REPORT);
+var config = require(locals.config);
+var report = require(locals.lib.report);
 
 var dataConn = new sqlite3.Database(config.DATA_DB_FILENAME, sqlite3.OPEN_READWRITE);
 var sessionConn = new sqlite3.Database(config.SESSION_DB_FILENAME, sqlite3.OPEN_READWRITE);
@@ -40,7 +40,9 @@ module.exports = {
 	'renameRoom': renameRoom,
 	'renameChannel': renameChannel,
 	'deleteRoom': deleteRoom,
-	'deleteChannel': deleteChannel
+	'deleteChannel': deleteChannel,
+	'createNewTags': createNewTags,
+	'attachFilesToTask': attachFilesToTask
 };
 
 /*###################################
@@ -741,6 +743,65 @@ function deleteChannel(channelID, callback) {
 			callback(error);
 		}
 	});
+}
+
+// callback called with arg which is a list of the tag IDs of both new and preexisting selected tags
+function createNewTags(selectedTags, preexistingTags, callback) {
+	if(!selectedTags) {
+		callback(false, []);
+		return;
+	}
+
+	if(!(selectedTags instanceof Array)) { // this is necessary because selectedTags may be a singleton
+		selectedTags = [selectedTags];
+	}
+
+	var newTagNames = [];
+	var oldTagIdentifiers = [];
+	for(var i=0; i<selectedTags.length; i++) {
+		var currentTag = selectedTags[i];
+		var index = preexistingTags.indexOf(Number(currentTag)); // coerce potential ids to numbers
+
+		if(index === -1) { // this selected tag is not preexisting
+			newTagNames.push(currentTag);
+		} else { // this selected tag is preexisting
+			oldTagIdentifiers.push(currentTag);
+		}
+	}
+
+	dbops.createTags(newTagNames, function(error, newTagIdentifiers) {
+		if(error) {
+			callback(error);
+			return;
+		}
+
+		var selectedTagIdentifiers = oldTagIdentifiers.concat(newTagIdentifiers);
+		callback(false, selectedTagIdentifiers);
+	});
+}
+
+function attachFilesToTask(task, files, callback) {
+	if(files.length === 0) {
+		callback(false);
+	} else {
+		var file = files.pop();
+
+		dbops.createAttachment(file, function(error, attachmentID) {
+			if(error) {
+				callback(error);
+				return;
+			}
+
+			dbops.createTaskAttachment(task, attachmentID, function(error) {
+				if(error) {
+					callback(error);
+					return;
+				}
+
+				attachFilesToTask(task, files, callback);
+			});
+		});
+	}
 }
 
 /*###################################
