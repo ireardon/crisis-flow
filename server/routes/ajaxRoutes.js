@@ -2,10 +2,17 @@ var locals = require(__localModules);
 var config = require(locals.config);
 var security = require(locals.server.security);
 var errorHandler = require(locals.server.error);
-var dbops = require(locals.server.database.dbops);
+var Attachments = require(locals.server.database.Attachments)(getDatastoreConnection());
+var Messages = require(locals.server.database.Messages)(getDatastoreConnection());
+var Rooms = require(locals.server.database.Rooms)(getDatastoreConnection());
+var Tags = require(locals.server.database.Tags)(getDatastoreConnection());
+var Tasks = require(locals.server.database.Tasks)(getDatastoreConnection());
+var TaskTags = require(locals.server.database.TaskTags)(getDatastoreConnection());
+var Users = require(locals.server.database.Users)(getDatastoreConnection());
 
-module.exports = function(aClientDirectory) {
+module.exports = function(aClientDirectory, sockets) {
 	this.clientDirectory = aClientDirectory;
+	this.Sockets = sockets;
 
 	function AjaxRoutes() {
 		this.get = {
@@ -45,25 +52,25 @@ module.exports = function(aClientDirectory) {
 		var username = request.session.user.username;
 		var displayName = request.session.user.display_name;
 
-		dbops.getRoom(roomID, function(error, room) {
+		Rooms.get(roomID, function(error, room) {
 			if(error) {
 				response.json({ 'error': 'Requested room is invalid' });
 				return;
 			}
 
-			dbops.getUsersDictionary(function(error, usersDictionary) {
+			Users.getAll(function(error, usersDictionary) {
 				if(error) {
 					response.json({ 'error': 'Request failed' });
 					return;
 				}
 
-				dbops.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(error, messages) {
+				Messages.getMessagesForRoom(roomID, config.DEFAULT_MESSAGE_COUNT, function(error, messages) {
 					if(error) {
 						response.json({ 'error': 'Request failed' });
 						return;
 					}
 
-					dbops.getAllTasksForRoom(roomID, function(error, tasks) {
+					Tasks.getAllForRoom(roomID, function(error, tasks) {
 						if(error) {
 							response.json({ 'error': 'Request failed' });
 							return;
@@ -103,7 +110,7 @@ module.exports = function(aClientDirectory) {
 	}
 
 	function getMessageJSON(request, response) {
-		securitys.reportRequest(request);
+		errorHandler.reportRequest(request);
 
 		if(!security.sessionValid(request.session)) {
 			response.json({ 'error': 'Session is invalid' });
@@ -112,19 +119,19 @@ module.exports = function(aClientDirectory) {
 
 		var roomID = request.params.roomID;
 		var username = request.session.user.username;
-		dbops.getRoom(roomID, function(error, room) {
+		Rooms.get(roomID, function(error, room) {
 			if(error) {
 				response.json({ 'error': 'Request room is invalid' });
 				return;
 			}
 
-			dbops.getUsersDictionary(function(error, usersDictionary) {
+			Users.getAll(function(error, usersDictionary) {
 				if(error) {
 					response.json({ 'error': 'Request failed' });
 					return;
 				}
 
-				dbops.getMessagesForRoom(roomID, false, function(error, messages) {
+				Messages.getMessagesForRoom(roomID, false, function(error, messages) {
 					if(error) {
 						response.json({ 'error': 'Request failed' });
 						return;
@@ -157,20 +164,20 @@ module.exports = function(aClientDirectory) {
 
 		var roomID = request.params.roomID;
 		var username = request.session.user.username;
-		dbops.getRoom(roomID, function(error, room) {
+		Rooms.get(roomID, function(error, room) {
 			if(error) {
 				response.json({ 'error': 'Requested room is invalid' });
 				return;
 			}
 
 
-			dbops.getUsersDictionary(function(error, usersDictionary) {
+			Users.getAll(function(error, usersDictionary) {
 				if(error) {
 					response.json({ 'error': 'Request failed' });
 					return;
 				}
 
-				dbops.getAllTasksForRoom(roomID, function(error, tasks) {
+				Tasks.getAllForRoom(roomID, function(error, tasks) {
 					if(error) {
 						response.json({ 'error': 'Request failed' });
 						return;
@@ -197,7 +204,7 @@ module.exports = function(aClientDirectory) {
 	function getTagJSON(request, response) {
 		errorHandler.reportRequest(request);
 
-		dbops.getAllTags(function(error, tags) {
+		Tags.getAll(function(error, tags) {
 			if(error) {
 				response.json({ 'error': 'Request failed' });
 				return;
@@ -223,7 +230,7 @@ module.exports = function(aClientDirectory) {
 		var username = request.session.user.username;
 		var message = request.body.message;
 
-		dbops.createMessage(roomID, username, message, function(error, submitTime) {
+		Messages.create(roomID, username, message, function(error, submitTime) {
 			if(error) {
 				response.json({ 'error': 'Request failed' });
 				return;
@@ -242,7 +249,7 @@ module.exports = function(aClientDirectory) {
 		}
 
 		var roomName = request.body.room_name;
-		dbops.createRoom(roomName, function(error, roomID) {
+		Rooms.create(roomName, function(error, roomID) {
 			if(error) {
 				response.json({ 'error': 'Failed to create room' });
 				return;
@@ -263,7 +270,7 @@ module.exports = function(aClientDirectory) {
 
 		var roomID = request.body.room_id;
 		clientDirectory.removeRoom(roomID);
-		dbops.deleteRoom(roomID, function(error) {
+		Rooms.delete(roomID, function(error) {
 			if(error) {
 				response.json({ 'error': 'Requested deletion of invalid room' });
 				return;
@@ -281,7 +288,7 @@ module.exports = function(aClientDirectory) {
 			return;
 		}
 
-		dbops.renameRoom(request.body.room_id, request.body.new_name, function(error) {
+		Rooms.rename(request.body.room_id, request.body.new_name, function(error) {
 			if(error) {
 				response.json({ 'error': 'Requested rename of invalid room' });
 				return;
@@ -301,7 +308,7 @@ module.exports = function(aClientDirectory) {
 
 		var roomID = request.body.room_id;
 		var channelName = request.body.channel_name;
-		dbops.createChannel(roomID, channelName, function(error, channelID) {
+		Channel.create(roomID, channelName, function(error, channelID) {
 			if(error) {
 				response.json({ 'error': 'Failed to create channel' });
 				return;
@@ -321,13 +328,13 @@ module.exports = function(aClientDirectory) {
 		}
 
 		var channelID = request.body.channel_id;
-		dbops.getRoomOfChannel(channelID, function(error, roomID) {
+		Channels.getRoomOfChannel(channelID, function(error, roomID) {
 			if(error) {
 				response.json({ 'error': 'Requested channel does not exist' });
 				return;
 			}
 
-			dbops.deleteChannel(channelID, function(error) {
+			Channel.delete(channelID, function(error) {
 				if(error) {
 					response.json({ 'error': 'Failed to delete channel' });
 					return;
@@ -347,7 +354,7 @@ module.exports = function(aClientDirectory) {
 			return;
 		}
 
-		dbops.renameChannel(request.body.channel_id, request.body.channel_name, function(error) {
+		Channel.rename(request.body.channel_id, request.body.channel_name, function(error) {
 			if(error) {
 				response.json({ 'error': 'Requested rename of invalid channel' });
 				return;
@@ -374,13 +381,13 @@ module.exports = function(aClientDirectory) {
 			return request.files[key];
 		});
 
-		dbops.getRoom(roomID, function(error) {
+		Rooms.get(roomID, function(error) {
 			if(error) {
 				response.json({ 'error': 'Requested room is invalid' });
 				return;
 			}
 
-			dbops.getAllTags(function(error, preexistingTags) {
+			Tags.getAll(function(error, preexistingTags) {
 				if(error) {
 					response.json({ 'error': 'Request failed' });
 					return;
@@ -390,25 +397,25 @@ module.exports = function(aClientDirectory) {
 					return tag.id;
 				});
 
-				dbops.createNewTags(selectedTags, preexistingTagIdentifiers, function(error, allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
+				Tags.createNewTags(selectedTags, preexistingTagIdentifiers, function(error, allSelectedTags) { // returns a list of the tag IDs of both new and preexisting selected tags
 					if(error) {
 						response.json({ 'error': 'Request failed' });
 						return;
 					}
 
-					dbops.createTask(roomID, author, request.body.title, highPriority, request.body.content, function(error, taskID, submitTime) {
+					Tasks.create(roomID, author, request.body.title, highPriority, request.body.content, function(error, taskID, submitTime) {
 						if(error) {
 							response.json({ 'error': 'Request failed' });
 							return;
 						}
 
-						dbops.attachTagsToTask(taskID, allSelectedTags, function(error) {
+						TaskTags.attachTagsToTask(taskID, allSelectedTags, function(error) {
 							if(error) {
 								response.json({ 'error': 'Request failed' });
 								return;
 							}
 
-							attachFilesToTask(taskID, files, function(error) {
+							Tasks.attachFiles(taskID, files, function(error) {
 								if(error) {
 									response.json({ 'error': 'Request failed' });
 									return;
@@ -433,7 +440,7 @@ module.exports = function(aClientDirectory) {
 									'followups': []
 								};
 
-								io.sockets.in(roomID).emit('stc_add_task', taskData);
+								Sockets.addTask(roomID, taskData);
 
 								response.redirect('/rooms/' + roomID);
 							});
@@ -449,7 +456,7 @@ module.exports = function(aClientDirectory) {
 
 		var username = request.body.username;
 
-		dbops.getUserWithPassword(username, function(error, userWithPassword) {
+		Users.getWithPassword(username, function(error, userWithPassword) {
 			if(error) {
 				response.json({ 'error': 'Username is invalid' });
 				return;
@@ -481,7 +488,7 @@ module.exports = function(aClientDirectory) {
 		if(!roleAccess) {
 			response.json({ 'error': 'Access code is incorrect' });
 		} else {
-			dbops.createUser(request.body.username, request.body.hashed_password, roleAccess, request.body.display_name, function(error) {
+			Users.create(request.body.username, request.body.hashed_password, roleAccess, request.body.display_name, function(error) {
 				if(error) {
 					response.json({ 'error': 'Request username is already in use' });
 				} else {

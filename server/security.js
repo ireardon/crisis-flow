@@ -3,7 +3,6 @@ var crypto = require('crypto');
 var locals = require(__localModules);
 var config = require(locals.config);
 var report = require(locals.lib.report);
-var dbops = require(locals.server.database.dbops);
 
 module.exports = {
 	'sessionValid': sessionValid,

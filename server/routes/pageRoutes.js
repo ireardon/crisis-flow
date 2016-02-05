@@ -2,7 +2,8 @@ var locals = require(__localModules);
 var config = require(locals.config);
 var security = require(locals.server.security);
 var errorHandler = require(locals.server.error);
-var dbops = require(locals.server.database.dbops);
+var Attachments = require(locals.server.database.Attachments)(getDatastoreConnection());
+var Rooms = require(locals.server.database.Rooms)(getDatastoreConnection());
 
 module.exports = function(aClientDirectory) {
 	this.clientDirectory = aClientDirectory;
@@ -34,7 +35,7 @@ module.exports = function(aClientDirectory) {
 		var filename = path.basename(request.params.filepath);
 		var mimetype = mime.lookup(filename);
 
-		dbops.getAttachmentByFilename(filename, function(error, userFilename) {
+		Attachments.getByFilename(filename, function(error, userFilename) {
 			if(error) {
 				sendNotFound(request, response);
 				return;
@@ -58,7 +59,7 @@ module.exports = function(aClientDirectory) {
 
 		var roomID = request.params.roomID;
 		var username = request.session.user.username;
-		dbops.getRoom(roomID, function(error, room) {
+		Rooms.get(roomID, function(error, room) {
 			if(error) {
 				sendNotFound(request, response);
 				return;
@@ -85,7 +86,7 @@ module.exports = function(aClientDirectory) {
 
 		var roomID = request.params.roomID;
 		var username = request.session.user.username;
-		dbops.getRoom(roomID, function(error, room) {
+		Rooms.get(roomID, function(error, room) {
 			if(error) {
 				sendNotFound(request, response);
 				return;
@@ -109,7 +110,7 @@ module.exports = function(aClientDirectory) {
 			return;
 		}
 
-		dbops.getRoom(request.params.roomID, function(error) {
+		Rooms.get(request.params.roomID, function(error) {
 			if(error) {
 				sendNotFound(request, response);
 				return;
@@ -133,7 +134,7 @@ module.exports = function(aClientDirectory) {
 			return;
 		}
 
-		dbops.getAllRooms(function(error, roomsList) {
+		Rooms.getAll(function(error, roomsList) {
 			if(error) {
 				sendNotFound(request, response);
 				return;
@@ -157,7 +158,7 @@ module.exports = function(aClientDirectory) {
 			return;
 		}
 
-		dbops.getAllRooms(function(error, roomsList) {
+		Rooms.getAll(function(error, roomsList) {
 			if(error) {
 				security.sendNotFound(request, response);
 				return;
