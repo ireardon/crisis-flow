@@ -1,4 +1,5 @@
 // this file contains global config variables
+var path = require('path');
 
 module.exports.DEBUG = true;
 
@@ -14,7 +15,7 @@ module.exports.SESSION_DB_FILENAME = 'sessions.db';
 module.exports.SESSION_DB_TABLENAME = 'sessions';
 
 module.exports.WEB_UPLOAD_PATH = '/uploads/';
-module.exports.LOCAL_UPLOAD_PATH = './uploads/';
+module.exports.LOCAL_UPLOAD_PATH = path.join(__base, '/uploads/');
 
 // the length of the salt string used in hashing the user's password etc.
 module.exports.SALT_LENGTH = 20;

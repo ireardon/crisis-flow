@@ -1,3 +1,7 @@
+var fs = require('fs');
+var path = require('path');
+var mime = require('mime');
+
 var locals = require(__localModules);
 var config = require(locals.config);
 var security = require(locals.server.security);
@@ -44,7 +48,7 @@ module.exports = function(aClientDirectory) {
 			response.setHeader('Content-disposition', 'attachment; filename=' + userFilename);
 			response.setHeader('Content-type', mimetype);
 
-			var filestream = fs.createReadStream(path.join(__dirname, request.originalUrl));
+			var filestream = fs.createReadStream(path.join(__base, request.originalUrl));
 			filestream.pipe(response);
 		});
 	}
@@ -68,7 +72,7 @@ module.exports = function(aClientDirectory) {
 			var context = {
 				'room': room,
 				'username': username,
-				'upload_path': config.UPLOAD_PATH,
+				'upload_path': config.WEB_UPLOAD_PATH,
 				'display_name': request.session.user.display_name
 			};
 
