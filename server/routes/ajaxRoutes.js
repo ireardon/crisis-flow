@@ -468,7 +468,7 @@ module.exports = function(aClientDirectory, sockets) {
 				delete request.session.server_salt;
 				request.session.active = true;
 
-				delete userWithPassword.password_hash
+				delete userWithPassword.password_hash;
 				request.session.user = userWithPassword;
 
 				response.json({ 'success': true });
@@ -484,15 +484,23 @@ module.exports = function(aClientDirectory, sockets) {
 		errorHandler.reportRequest(request);
 
 		var roleAccess = security.getAccessRole(request.body.access_code_salted_hash, request.body.client_salt, request.session.server_salt);
+		var username = request.body.username;
 
 		if(!roleAccess) {
 			response.json({ 'error': 'Access code is incorrect' });
 		} else {
-			Users.create(request.body.username, request.body.hashed_password, roleAccess, request.body.display_name, function(error) {
+			Users.create(username, request.body.hashed_password, roleAccess,
+				request.body.display_name, function(error) {
 				if(error) {
-					response.json({ 'error': 'Request username is already in use' });
+					response.json({ 'error': 'Requested username is already in use' });
 				} else {
-					response.json({ 'success': true });
+					delete request.session.server_salt;
+					request.session.active = true;
+
+					Users.get(username, function(error, user) {
+						request.session.user = user;
+						response.json({ 'success': true });
+					});
 				}
 			});
 		}
