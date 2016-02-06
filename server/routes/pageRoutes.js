@@ -37,7 +37,7 @@ module.exports = function(aClientDirectory) {
 
 		Attachments.getByFilename(filename, function(error, userFilename) {
 			if(error) {
-				sendNotFound(request, response);
+				errorHandler.send404(request, response);
 				return;
 			}
 
@@ -61,7 +61,7 @@ module.exports = function(aClientDirectory) {
 		var username = request.session.user.username;
 		Rooms.get(roomID, function(error, room) {
 			if(error) {
-				sendNotFound(request, response);
+				errorHandler.send404(request, response);
 				return;
 			}
 
@@ -88,7 +88,7 @@ module.exports = function(aClientDirectory) {
 		var username = request.session.user.username;
 		Rooms.get(roomID, function(error, room) {
 			if(error) {
-				sendNotFound(request, response);
+				errorHandler.send404(request, response);
 				return;
 			}
 
@@ -112,7 +112,7 @@ module.exports = function(aClientDirectory) {
 
 		Rooms.get(request.params.roomID, function(error) {
 			if(error) {
-				sendNotFound(request, response);
+				errorHandler.send404(request, response);
 				return;
 			}
 
@@ -136,7 +136,7 @@ module.exports = function(aClientDirectory) {
 
 		Rooms.getAll(function(error, roomsList) {
 			if(error) {
-				sendNotFound(request, response);
+				errorHandler.send404(request, response);
 				return;
 			}
 
@@ -160,7 +160,7 @@ module.exports = function(aClientDirectory) {
 
 		Rooms.getAll(function(error, roomsList) {
 			if(error) {
-				security.sendNotFound(request, response);
+				errorHandler.send404(request, response);
 				return;
 			}
 
