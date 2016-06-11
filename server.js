@@ -1,18 +1,22 @@
+/*
+	This is the "main file" for the application. This is the file which should
+	be run from the command line as "node server.js" to start an application
+	server. This module sets up global variables and data structures, applies
+	configurations to the Express application, and instantiates route handling.
+*/
+
 /*###################################
   #      REQUIRES AND GLOBALS       #
   ###################################*/
 
 var bodyParser = require('body-parser');
 var connect = require('connect');
-var engines = require('consolidate');
 var cookie = require('cookie');
 var cookieParser = require('cookie-parser');
 var ECT = require('ect');
 var express = require('express');
 var expressSession = require('express-session');
-var fs = require('fs');
 var http = require('http');
-var mime = require('mime');
 var multer = require('multer');
 var path = require('path');
 var socketIO = require('socket.io');
@@ -46,19 +50,24 @@ var errorHandler = require(locals.server.error);
 var port = process.env.PORT || 8080;
 var app = express();
 
+// initialize the persistent storage for client sessions
 var sessionStore = new SQLiteStore({ table: config.SESSION_DB_TABLENAME });
 
+// initialize the ECT template engine
 var ectEngine = ECT({ watch: true, root: path.join(__dirname, 'client', 'templates'), ext: '.html' });
 
 var server = http.createServer(app);
 var io = socketIO(server);
 
-app.engine('html', ectEngine.render); // tell Express to run .html files through ECT template parser
+// tell Express to run .html files through ECT template parser
+app.engine('html', ectEngine.render);
 app.set('view engine', 'html');
 
-app.set('views', path.join(__dirname, 'client', 'templates')); // tell Express where to find templates
+// tell Express where to find templates
+app.set('views', path.join(__dirname, 'client', 'templates'));
 app.use(express.static(path.join(__dirname, 'client')));
 
+// tell Express to use cookies to maintain client sessions
 app.use(cookieParser(config.COOKIE_SIGN_SECRET));
 app.use(expressSession({
 	name: config.COOKIE_SESSION_KEY,
@@ -69,9 +78,12 @@ app.use(expressSession({
 }));
 
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
-app.use(multer({ dest: config.LOCAL_UPLOAD_PATH}));
+app.use(bodyParser.urlencoded({ extended: true }));
 
+// tell Express to use multer to handle file uploads
+app.use(multer({ dest: config.LOCAL_UPLOAD_PATH }));
+
+// instantiate the in-memory ClientDirectory
 var clientDirectory = io.sockets.clientDirectory = new clientdir.ClientDirectory();
 clientDirectory.syncToDB(function() {
 	server.listen(port, function() {
@@ -83,6 +95,7 @@ clientDirectory.syncToDB(function() {
   #            SOCKET IO            #
   ###################################*/
 
+// tell Socket.io to use the same cookies for session management as the Express app
 io.use(function(socket, next) {
 	var sessionId = getcookie.getcookie(socket.request, config.COOKIE_SESSION_KEY, config.COOKIE_SIGN_SECRET);
 

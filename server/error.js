@@ -1,12 +1,18 @@
 var locals = require(__localModules);
 var report = require(locals.lib.report);
 
+/*
+	This module contains easy-to-use functions for sending error responses to
+	clients.
+*/
+
 module.exports = {
 	'send404': send404,
     'send500': send500,
 	'reportRequest': reportRequest
 };
 
+// Issues a 404 not found error response in a client-friendly format
 function send404(request, response) {
 	report.debug('ISSUED 404 for URL: ' + request.url);
 
@@ -31,6 +37,7 @@ function send404(request, response) {
 	response.type('txt').send('404 - Not found');
 }
 
+// Issues a 500 internal server error response in a client-friendly format
 function send500(error, request, response, next) {
 	report.error(error, 'ISSUED 500 for URL: ' + request.url);
 

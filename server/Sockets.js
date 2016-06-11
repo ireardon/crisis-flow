@@ -7,7 +7,17 @@ var Tasks = require(locals.server.database.Tasks)(getDatastoreConnection());
 var TaskFollowups = require(locals.server.database.TaskFollowups)(getDatastoreConnection());
 var Users = require(locals.server.database.Users)(getDatastoreConnection());
 
+/*
+  This module contains all of the websocket functionality used to make the chat
+  interface update in real time.
+
+  Socket message types are prefixed with either "stc" for "server-to-client" or
+  "cts" for "client-to-server" so the directionality is easy to understand.
+*/
+
 module.exports = function(io, clientDirectory) {
+    // the socket behavior requires a socket to act upon, so this functionality
+    // is registered during a callback run whenever a socket connects
     io.sockets.on('connection', function(socket) {
     	report.debug('SOCKET connected');
 
@@ -22,6 +32,8 @@ module.exports = function(io, clientDirectory) {
 
     	socket.user = socket.session.user.username;
 
+      // when a client joins a room, update the ClientDirectory and notify
+      // the other clients
     	socket.on('join', function(roomID) {
     		report.debug('ROOM JOINED');
     		socket.join(roomID);
@@ -110,18 +122,22 @@ module.exports = function(io, clientDirectory) {
     		socket.broadcast.to(socket.room).emit('stc_typing', socket.user);
     	});
 
+      // the client emits this whenever the chat window loses focus
     	socket.on('cts_user_idle', function() {
     		socket.broadcast.to(socket.room).emit('stc_user_idle', socket.user);
     	});
 
+      // the client emits this whenever the chat window gains focus
     	socket.on('cts_user_active', function() {
     		socket.broadcast.to(socket.room).emit('stc_user_active', socket.user);
     	});
 
+      // the client emits this whenever it joins a new channel
     	socket.on('cts_join_channel', function(channelID) {
     		clientDirectory.addToChannel(socket.user, socket.room, channelID);
     	});
 
+      // the client emits this whenever it leaves a channel
     	socket.on('cts_leave_channel', function(channelID) {
     		clientDirectory.removeFromChannel(socket.user, socket.room, channelID);
     	});
@@ -131,12 +147,13 @@ module.exports = function(io, clientDirectory) {
     		report.debug('SOCKET disconnected');
 
     		var roomID = socket.room;
-    		// the docs say there is no need to call socket.leave(), as it happens automatically
-    		// but this is clearly a lie, because it doesn't work
-    		// fetch all sockets in a room
 
-    		if(roomID !== undefined) { // if the server has gone down and no reconnect occurred, this will not exist
-    			socket.leave(roomID);
+        // if the server has gone down and no reconnect occurred, roomID will
+        // not exist, so we error check for this case
+    		if(roomID !== undefined) {
+          // the docs say there is no need to call socket.leave(), as it happens
+          // automatically, but this is clearly a lie, because it doesn't work
+          socket.leave(roomID);
     			clientDirectory.removeClient(socket.user, roomID);
 
     			var remainingUsersIdentifiers = clientDirectory.getClientsByRoom(roomID);
@@ -157,6 +174,8 @@ module.exports = function(io, clientDirectory) {
     	});
     });
 
+    // this function is defined in this context because it needs a reference
+    // to io.sockets, note that this function is exported as Sockets.addTask
     this.addTask = function(roomID, taskData) {
         io.sockets.in(roomID).emit('stc_add_task', taskData);
     };

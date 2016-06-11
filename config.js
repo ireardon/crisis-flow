@@ -1,5 +1,8 @@
-// this file contains global config variables
 var path = require('path');
+
+/*
+  This file contains global config variables.
+*/
 
 module.exports.DEBUG = true;
 
